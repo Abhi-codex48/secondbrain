@@ -1,0 +1,11 @@
+# Minimal Supabase CLI config. The project is linked in the GitHub Action.
+project_id = "secondbrain"
+
+[functions.news-sync]
+verify_jwt = true
+
+[functions.fetch-article]
+verify_jwt = true
+
+[functions.summarise]
+verify_jwt = true
