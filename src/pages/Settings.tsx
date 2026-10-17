@@ -144,8 +144,8 @@ export function Settings() {
       </Section>
 
       <Section icon={<Sparkles size={19} />} title="AI summaries" color="var(--accent)">
-        <p className="muted">Summaries use free AI services (Groq, then Google Gemini) set up on your server. Only the article text, or the typed text of a note when you tap "Summarise with AI", is sent. Handwriting and other notes are never sent. There is no paid fallback.</p>
-        <p className="tiny">Today: {ai && ai.ai_day ? ai.ai_count : 0} AI requests used (app limit 150 per day; the providers' own free limits also apply).</p>
+        <p className="muted">Summaries use the free tier of Google Gemini, set up on your server. Google may use what is sent on the free tier to improve its products. Only the article text, or the typed text of a note when you tap "Summarise with AI", is sent. Handwriting and other notes are never sent. There is no paid fallback.</p>
+        <p className="tiny">Today: {ai && ai.ai_day ? ai.ai_count : 0} AI requests used (app limit 150 per day; Gemini's own free daily limit also applies).</p>
       </Section>
 
       <Section icon={<DatabaseBackup size={19} />} title="Backup and restore" color="var(--more-1)">

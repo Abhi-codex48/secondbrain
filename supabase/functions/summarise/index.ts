@@ -1,33 +1,15 @@
-// Creates an AI summary using free-tier providers (Groq first, then Gemini).
+// Creates an AI summary using the free tier of Google Gemini.
 // There is no paid fallback: when quotas run out the app keeps working without AI.
 import { cors, json, userClient } from "../_shared/http.ts";
 import { buildPrompt, parseSummary, type Length, type Summary } from "../_shared/ai.ts";
 
 const DAILY_LIMIT = Number(Deno.env.get("AI_DAILY_LIMIT") ?? "150");
 
-async function callGroq(system: string, user: string) {
-  const key = Deno.env.get("GROQ_API_KEY");
-  if (!key) return null;
-  const model = Deno.env.get("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [{ role: "system", content: system }, { role: "user", content: user }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}`);
-  const data = await res.json();
-  return { text: String(data.choices?.[0]?.message?.content ?? ""), provider: "Groq", model };
-}
-
 async function callGemini(system: string, user: string) {
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) return null;
-  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  // Flash-Lite has the largest free daily allowance; the "-latest" alias follows Google's renames.
+  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-flash-lite-latest";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
@@ -89,7 +71,7 @@ Deno.serve(async (req) => {
 
   const { system, user } = buildPrompt(text, { title, length, basedOn });
   const errors: string[] = [];
-  for (const call of [callGroq, callGemini]) {
+  for (const call of [callGemini]) {
     try {
       const r = await call(system, user);
       if (!r) continue;
@@ -103,7 +85,7 @@ Deno.serve(async (req) => {
     }
   }
   if (errors.length === 0) {
-    return json({ error: "AI summaries are not set up yet. Add a free Groq or Gemini key (see README).", code: "not_configured" }, 503);
+    return json({ error: "AI summaries are not set up yet. Add a free Gemini key (see README).", code: "not_configured" }, 503);
   }
-  return json({ error: "The free AI services are busy or out of quota right now. Try again later; your notes are unaffected.", code: "unavailable", detail: errors }, 503);
+  return json({ error: "Gemini's free quota is used up or the service is busy right now. Try again later; your notes are unaffected.", code: "unavailable", detail: errors }, 503);
 });

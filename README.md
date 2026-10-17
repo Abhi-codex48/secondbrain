@@ -20,12 +20,12 @@ Everything runs on free plans. No credit card is needed for any step below.
 | Website | **GitHub Pages** (public repo) | Serves the app |
 | Database, login, image storage | **Supabase** | Stores your notes privately; row-level security means only your account can read them |
 | Server functions | **Supabase Edge Functions** | Fetch newspaper feeds, read articles, call the AI. API keys stay on the server |
-| AI summaries | **Groq** (first), **Google Gemini** (backup) | Summaries in simple English. Optional: the app works without them |
+| AI summaries | **Google Gemini** (free tier, Flash-Lite model) | Summaries in simple English. Optional: the app works without them |
 
 Free-plan limits as published when this was built (check the providers' pages for current values):
 - Supabase free: 500 MB database, 1 GB file storage, 2 projects. **A free project is paused after 7 days without activity**; your data is kept and you restore it from the Supabase dashboard. Daily use keeps it active.
-- Groq and Gemini free tiers have per-day request limits that change over time. The app also caps itself at 150 AI requests per day (`AI_DAILY_LIMIT`). When a limit is reached, reading and writing notes keep working.
-- **Privacy:** Google's pricing page states that content sent on the Gemini *free* tier may be used to improve Google's products. Only article text (or a note's typed text when you tap "Summarise with AI") is ever sent. Leave the Gemini key out if you prefer.
+- Gemini's free tier covers only the Flash and Flash-Lite models, with per-day limits that change over time (Flash-Lite has the largest allowance, reported at about 500 requests a day in late 2026; your exact limit shows at aistudio.google.com/rate-limit). The app also caps itself at 150 AI requests per day (`AI_DAILY_LIMIT`). When a limit is reached, reading and writing notes keep working.
+- **Privacy:** Google's pricing page states that content sent on the Gemini *free* tier may be used to improve Google's products. Only article text (or a note's typed text when you tap "Summarise with AI") is ever sent. Leave the Gemini key out if you prefer; everything except summaries still works.
 
 ---
 
@@ -41,8 +41,7 @@ Free-plan limits as published when this was built (check the providers' pages fo
 5. Open **Authentication → URL Configuration** and set **Site URL** to `https://abhi-codex48.github.io/secondbrain/`.
 
 ### 2. Get a free AI key
-- **Groq** (recommended): sign in at [console.groq.com](https://console.groq.com), open **API Keys**, then **Create API Key**.
-- **Gemini** (optional backup): [aistudio.google.com](https://aistudio.google.com), then **Get API key**.
+Sign in at [aistudio.google.com](https://aistudio.google.com) with your Google account and click **Get API key → Create API key**. No card is needed. Do not turn on billing: that replaces the free allowance with paid usage.
 
 ### 3. Add the values to GitHub
 Open the repository on GitHub, then **Settings → Secrets and variables → Actions**.
@@ -54,8 +53,8 @@ Under **Secrets**, add:
 | `SUPABASE_ACCESS_TOKEN` | token from step 1.4 |
 | `SUPABASE_PROJECT_REF` | project ref from step 1.3 |
 | `SUPABASE_DB_PASSWORD` | database password from step 1.2 |
-| `GROQ_API_KEY` | Groq key (optional) |
-| `GEMINI_API_KEY` | Gemini key (optional) |
+| `GEMINI_API_KEY` | Gemini key (leave out to run without AI) |
+| `GEMINI_MODEL` | optional: a different Gemini model name from AI Studio |
 
 Under the **Variables** tab, add:
 

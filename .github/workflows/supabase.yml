@@ -20,14 +20,14 @@ jobs:
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
       - name: Create tables and security rules
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
-      - name: Store AI keys on the server
+      - name: Store the AI key on the server
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
         run: |
           args=""
-          [ -n "$GROQ_API_KEY" ] && args="$args GROQ_API_KEY=$GROQ_API_KEY"
           [ -n "$GEMINI_API_KEY" ] && args="$args GEMINI_API_KEY=$GEMINI_API_KEY"
+          [ -n "$GEMINI_MODEL" ] && args="$args GEMINI_MODEL=$GEMINI_MODEL"
           if [ -n "$args" ]; then supabase secrets set $args --project-ref "$PROJECT_REF"; else echo "No AI keys given; summaries stay off."; fi
       - name: Deploy server functions
         run: |
