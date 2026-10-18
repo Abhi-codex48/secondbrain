@@ -66,10 +66,15 @@ export function News() {
     sync(false);
   }, [sync]);
 
+  // Keep the current list on screen while a filter applies, so nothing jumps.
   useEffect(() => {
-    setItems(null);
     load();
+    setExpanded(new Set());
   }, [load]);
+  // Bring the chosen chip into view (it may be off-screen after "See all").
+  useEffect(() => {
+    document.querySelector(".chips .chip.on:not(:first-child)")?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [topic, src]);
 
   const openLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,7 +191,7 @@ export function News() {
             const open = !!topic || expanded.has(g.name) || g.items.length <= PER_GROUP + 1;
             const shown = open ? g.items : g.items.slice(0, PER_GROUP);
             return (
-              <section key={g.name} className="nsec">
+              <section key={`${g.name}-${src}-${view}`} className="nsec">
                 {!topic && (
                   <header>
                     <h2>{g.name}</h2>

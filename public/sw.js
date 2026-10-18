@@ -1,6 +1,6 @@
 // Keeps the app usable even when the network or GitHub Pages is down:
 // the page and its files are served from this device's cache when needed.
-const CACHE = "secondbrain-v1";
+const CACHE = "secondbrain-v2";
 const SHELL = ["./", "./index.html", "./icon.svg", "./manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

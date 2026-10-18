@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, FolderOpen, LayoutGrid, Newspaper, Search } from "lucide-react";
+import { ArrowRight, FolderOpen, LayoutGrid, Newspaper } from "lucide-react";
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
-import { go } from "../lib/router";
 import { setTitle } from "../components/Layout";
 
 function greeting() {
@@ -12,7 +11,6 @@ function greeting() {
 
 export function Home() {
   const [c, setC] = useState<{ news: number; notes: number; todos: number } | null>(null);
-  const [q, setQ] = useState("");
   useEffect(() => {
     setTitle("");
     homeCounts().then(setC).catch(() => setC(null));
@@ -48,18 +46,6 @@ export function Home() {
         </a>
       </div>
 
-      <form
-        className="searchbox"
-        style={{ minHeight: 54, borderRadius: 18 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (q.trim()) go(`search?q=${encodeURIComponent(q.trim())}`);
-        }}
-      >
-        <Search size={20} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search your notes, news, Wikipedia and Google" aria-label="Search everything" />
-        <button className="btn primary sm" type="submit">Search</button>
-      </form>
     </div>
   );
 }

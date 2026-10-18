@@ -45,10 +45,9 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
             }}
           >
             <Search size={18} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes, news, Wikipedia…" aria-label="Search" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search everything" aria-label="Search" />
           </form>
           <div className="top-actions">
-            <a className="icon-btn only-m" href="#/search" aria-label="Search"><Search size={20} /></a>
             <button className="icon-btn" onClick={() => setPen(true)} aria-label="Pen mode" title="Pen mode: draw over the screen"><PenLine size={20} /></button>
             <a className={`icon-btn ${cur === "settings" ? "on" : ""}`} href="#/settings" aria-label="Settings"><Settings size={20} /></a>
           </div>

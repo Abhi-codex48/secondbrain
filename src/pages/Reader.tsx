@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
-import { fetchFullText } from "../lib/fulltext";
+import { cleanArticle, fetchFullText } from "../lib/fulltext";
 import { findNoteForNews, getNews, listFolders, savePastedText, saveNote, setNewsStatus } from "../lib/api";
 import type { Folder, NewsItem } from "../lib/types";
 import { keyPoints, keyPointsToHtml } from "../lib/keypoints";
@@ -52,6 +52,8 @@ export function Reader({ id }: { id: string }) {
       try {
         const [it, fs, existing] = await Promise.all([getNews(id), listFolders(), findNoteForNews(id)]);
         setTitle(it.title);
+        // Text saved earlier may still hold bits of the newspaper's website.
+        if (it.article_text && !pasted) it.article_text = cleanArticle(it.article_text) || it.article_text;
         setItem(it);
         setFolders(fs);
         setSaved(existing);

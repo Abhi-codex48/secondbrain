@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock, Newspaper, PenLine } from "lucide-react";
 import { signInWithGoogle } from "../lib/firebase";
 import { errMsg } from "../components/ui";
 
@@ -29,19 +29,25 @@ export function Auth() {
   };
   return (
     <div className="auth">
-      <div className="card">
-        <div className="brand" style={{ fontSize: "1.3rem" }}>
-          <img src="./icon.svg" alt="" style={{ width: 40, height: 40 }} />
-          <span>Second Brain</span>
-        </div>
-        <p className="muted">Your private notes, handwriting and daily news, synced across your phone, tablet and laptop. Only you can see your notes.</p>
-        <button className="btn line block" style={{ minHeight: 52 }} onClick={go} disabled={busy}>
+      <i className="blob b1" aria-hidden="true" />
+      <i className="blob b2" aria-hidden="true" />
+      <i className="blob b3" aria-hidden="true" />
+      <main className="auth-card">
+        <img className="auth-logo" src="./icon.svg" alt="" />
+        <h1>Second Brain</h1>
+        <p className="auth-lead">Your notes, handwriting and the day's news, in one private place.</p>
+        <ul className="auth-points">
+          <li style={{ ["--c" as string]: "var(--news-2)" }}><span><Newspaper size={18} /></span>Today's headlines from 10 newspapers and PIB, with key points</li>
+          <li style={{ ["--c" as string]: "var(--notes-1)" }}><span><PenLine size={18} /></span>Write by hand, highlight and mark up any page</li>
+          <li style={{ ["--c" as string]: "var(--more-1)" }}><span><Lock size={18} /></span>Private to your Google account and synced on all your devices</li>
+        </ul>
+        <button className="btn auth-google" onClick={go} disabled={busy}>
           {busy ? <Loader2 size={18} className="spin" /> : <GoogleIcon />}
-          Continue with Google
+          {busy ? "Signing in…" : "Continue with Google"}
         </button>
-        {err && <p style={{ color: "var(--bad)", fontWeight: 700 }}>{err}</p>}
-        <p className="tiny">Your notes are private to your Google account. You can download or permanently delete all of your data, and your account, at any time from Settings.</p>
-      </div>
+        {err && <p className="auth-err" role="alert">{err}</p>}
+        <p className="tiny auth-fine">Free, with no ads. Download or delete everything any time from Settings.</p>
+      </main>
     </div>
   );
 }

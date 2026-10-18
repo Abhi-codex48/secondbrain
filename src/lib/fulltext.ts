@@ -7,6 +7,28 @@ const READER = "https://r.jina.ai/";
 
 const JUNK = /^(advertisement|also read|read more|subscribe|sign in|log in|share|follow us|download the app|click here|story continues below|trending|recommended|related)/i;
 
+// Lines that belong to the newspaper's page (menus, comment boxes, sign-in
+// prompts, photo credits) rather than to the article.
+const CHROME = /\$\{|\{\{|remove at least one device|comments have to be|terms of (use|reference|service)|all rights reserved|copyright ©|subscribe to|sign in to|log in to|follow us on|download the app|read comments|image used for representational|representational image|e-?paper|whatsapp channel|join our|newsletter|^(updated|published)\s*[-:–]/i;
+
+/** True when a line reads like part of the article, not the website around it. */
+export function isArticleLine(line: string): boolean {
+  if (CHROME.test(line) || JUNK.test(line)) return false;
+  const words = line.split(/\s+/);
+  if (words.length < 8 && !/[.?!"”]$/.test(line)) return false;
+  // Menus pasted together ("About UsCode of Editorial ValuesNews Archive")
+  if ((line.match(/[a-z][A-Z]/g) ?? []).length >= 3) return false;
+  // Mostly Capitalised Words is a menu or a list of section names
+  const caps = words.filter((w) => /^[A-Z]/.test(w)).length;
+  if (words.length >= 6 && caps / words.length > 0.7) return false;
+  // Lines in another script inside an English article are site menus
+  if ((line.match(/[\u0900-\u0DFF]/g) ?? []).length > 3) return false;
+  return true;
+}
+
+/** Cleans article text, including text saved before this filter existed. */
+export const cleanArticle = (text: string) => text.split(/\n+/).map((l) => l.trim()).filter((l) => l && isArticleLine(l)).join("\n\n");
+
 export function markdownToText(md: string): string {
   const start = md.indexOf("Markdown Content:");
   const body = start >= 0 ? md.slice(start + "Markdown Content:".length) : md;
@@ -20,10 +42,7 @@ export function markdownToText(md: string): string {
       .replace(/(\*\*|__|\*|_|`)/g, "")
       .replace(/\s+/g, " ")
       .trim();
-    if (!line || /^[=\-|: ]+$/.test(line) || JUNK.test(line)) continue;
-    // Menus, bylines and buttons are short; article paragraphs are sentences.
-    const words = line.split(" ").length;
-    if (words < 8 && !/[.?!:"”]$/.test(line)) continue;
+    if (!line || /^[=\-|: ]+$/.test(line) || !isArticleLine(line)) continue;
     out.push(line);
   }
   return [...new Set(out)].join("\n\n");
@@ -38,7 +57,7 @@ async function readable(html: string, url: string): Promise<string> {
   d.head.appendChild(base);
   const art = new Readability(d).parse();
   const body = new DOMParser().parseFromString(art?.content ?? "", "text/html");
-  const text = [...body.querySelectorAll("p, li, h2, h3, blockquote")].map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim()).filter((l) => l.split(" ").length >= 8 && !JUNK.test(l));
+  const text = [...body.querySelectorAll("p, li, h2, h3, blockquote")].map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim()).filter((l) => l.split(" ").length >= 8 && isArticleLine(l));
   return [...new Set(text)].join("\n\n");
 }
 
