@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { classify } from "../supabase/functions/_shared/classify";
-import { checkUrlShape, isPrivateIPv4, isPrivateIPv6 } from "../supabase/functions/_shared/ssrf";
-import { canonicalUrl, parseFeed } from "../supabase/functions/_shared/rss";
-import { buildPrompt, parseSummary } from "../supabase/functions/_shared/ai";
-import { DEFAULT_SOURCES, googleNewsFeed } from "../supabase/functions/_shared/sources";
+import { classify } from "../shared/classify";
+import { canonicalUrl, parseFeed } from "../shared/rss";
+import { DEFAULT_SOURCES, googleNewsFeed } from "../shared/sources";
 
 describe("classify", () => {
   it("keeps UPSC topics and tags them", () => {
@@ -22,28 +20,6 @@ describe("classify", () => {
   it("matches short acronyms only as whole words", () => {
     expect(classify("RBI keeps repo rate unchanged").topics).toContain("Economy");
     expect(classify("Copper prices climb").topics).not.toContain("Environment");
-  });
-});
-
-describe("ssrf guards", () => {
-  it("blocks private and metadata addresses", () => {
-    for (const ip of ["127.0.0.1", "10.1.2.3", "192.168.1.1", "172.20.0.1", "169.254.169.254", "0.0.0.0", "100.64.0.1"]) {
-      expect(isPrivateIPv4(ip)).toBe(true);
-    }
-    expect(isPrivateIPv4("8.8.8.8")).toBe(false);
-    expect(isPrivateIPv6("::1")).toBe(true);
-    expect(isPrivateIPv6("fd00::1")).toBe(true);
-    expect(isPrivateIPv6("::ffff:127.0.0.1")).toBe(true);
-    expect(isPrivateIPv6("2606:4700::1111")).toBe(false);
-  });
-  it("rejects bad URL shapes", () => {
-    expect(checkUrlShape("file:///etc/passwd").ok).toBe(false);
-    expect(checkUrlShape("http://localhost/x").ok).toBe(false);
-    expect(checkUrlShape("http://169.254.169.254/latest").ok).toBe(false);
-    expect(checkUrlShape("http://user:pw@example.com").ok).toBe(false);
-    expect(checkUrlShape("http://example.com:8080").ok).toBe(false);
-    expect(checkUrlShape("http://intranet/").ok).toBe(false);
-    expect(checkUrlShape("https://www.thehindu.com/news/national/x.ece").ok).toBe(true);
   });
 });
 
@@ -71,23 +47,5 @@ describe("feeds", () => {
   it("has ten newspapers plus PIB, each with a fallback site", () => {
     expect(DEFAULT_SOURCES.filter((s) => s.key !== "pib")).toHaveLength(10);
     for (const s of DEFAULT_SOURCES) expect(googleNewsFeed(s.site)).toContain(encodeURIComponent(`site:${s.site}`));
-  });
-});
-
-describe("ai helpers", () => {
-  it("marks supplied text as untrusted and truncates it", () => {
-    const { system, user } = buildPrompt("x".repeat(20000), { length: "short", basedOn: "full" });
-    expect(system).toMatch(/untrusted data/);
-    expect(user.length).toBeLessThan(15500);
-  });
-  it("parses a fenced JSON reply", () => {
-    const s = parseSummary('```json\n{"in_short":"A","what_happened":["b"],"key_facts":"c"}\n```', "full");
-    expect(s.in_short).toBe("A");
-    expect(s.key_facts).toEqual(["c"]);
-    expect(s.mains_angle).toEqual([]);
-  });
-  it("rejects empty replies", () => {
-    expect(() => parseSummary("{}", "full")).toThrow();
-    expect(() => parseSummary("no json", "full")).toThrow();
   });
 });

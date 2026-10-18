@@ -1,8 +1,11 @@
-name: Deploy website
+name: Deploy website and news
 
+# Builds the site and collects the latest UPSC headlines every hour.
 on:
   push:
-    branches: [main]
+    branches: [main, claude/modest-knuth-jpz4zd]
+  schedule:
+    - cron: "17 * * * *" # every hour at :17 (GitHub may delay scheduled runs a little)
   workflow_dispatch:
 
 permissions:
@@ -12,7 +15,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -26,10 +29,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-        env:
-          # Public values (Settings > Secrets and variables > Actions > Variables).
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      - name: Fetch today's headlines
+        # Keeps earlier headlines from the live site so the list builds up through the day.
+        run: node --experimental-strip-types scripts/fetch-news.ts dist/news.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/news.json"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

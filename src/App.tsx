@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
-import { configured, supabase } from "./lib/supabase";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { auth, configured } from "./lib/firebase";
 import { useRoute } from "./lib/router";
 import { Layout } from "./components/Layout";
 import { ConfirmProvider, ToastProvider } from "./components/ui";
-import { Auth, NewPassword, NotConfigured } from "./pages/Auth";
+import { Auth, NotConfigured } from "./pages/Auth";
 import { Home } from "./pages/Home";
 import { News } from "./pages/News";
 import { Notes } from "./pages/Notes";
@@ -34,25 +34,14 @@ function Pages() {
 }
 
 export function App() {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [recovery, setRecovery] = useState(false);
-  useEffect(() => {
-    if (!configured) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((ev, s) => {
-      if (ev === "PASSWORD_RECOVERY") setRecovery(true);
-      setSession(s);
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
+  useEffect(() => (configured ? onAuthStateChanged(auth, setUser) : undefined), []);
 
   if (!configured) return <NotConfigured />;
-  if (session === undefined) return null;
+  if (user === undefined) return null;
   return (
     <ToastProvider>
-      <ConfirmProvider>
-        {recovery ? <NewPassword onDone={() => setRecovery(false)} /> : session ? <Pages /> : <Auth />}
-      </ConfirmProvider>
+      <ConfirmProvider>{user ? <Pages key={user.uid} /> : <Auth />}</ConfirmProvider>
     </ToastProvider>
   );
 }

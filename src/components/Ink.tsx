@@ -89,9 +89,9 @@ export function InkLayer({
   const toLogical = (e: PointerEvent | React.PointerEvent) => {
     const r = ref.current!.getBoundingClientRect();
     const k = INK_W / r.width;
-    return [(e.clientX - r.left) * k, (e.clientY - r.top) * k] as const;
+    return [Math.round((e.clientX - r.left) * k * 10) / 10, Math.round((e.clientY - r.top) * k * 10) / 10] as const;
   };
-  const pressureOf = (e: PointerEvent | React.PointerEvent) => (e.pointerType === "pen" ? Math.max(0.05, e.pressure || 0.5) : 0.5);
+  const pressureOf = (e: PointerEvent | React.PointerEvent) => (e.pointerType === "pen" ? Math.round(Math.max(0.05, e.pressure || 0.5) * 100) / 100 : 0.5);
 
   const flush = () => {
     cancelAnimationFrame(raf.current);

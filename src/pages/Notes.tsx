@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FolderPlus, Search, Pin, PinOff, Trash2, RotateCcw, Settings2, Inbox, Layers, Sparkles, PenLine, Newspaper, NotebookPen } from "lucide-react";
+import { FolderPlus, Search, Pin, PinOff, Trash2, RotateCcw, Settings2, Inbox, Layers, ListChecks, PenLine, Newspaper, NotebookPen } from "lucide-react";
 import { createFolder, deleteFolder, deleteNoteForever, emptyTrash, folderCounts, listFolders, listNotes, noteSources, restoreNote, saveNote, updateFolder, type NoteFilter } from "../lib/api";
 import type { Folder, Note } from "../lib/types";
 import { addDays, fmtDate, istDay } from "../lib/date";
@@ -44,7 +44,7 @@ export function Notes({ route }: { route: Route }) {
   const [range, setRange] = useState<DateRange>("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [hasAi, setHasAi] = useState(false);
+  const [hasKeyPoints, setHasKeyPoints] = useState(false);
   const [newFolder, setNewFolder] = useState(false);
   const [manage, setManage] = useState<Folder | null>(null);
   const toast = useToast();
@@ -62,7 +62,7 @@ export function Notes({ route }: { route: Route }) {
   }, [refreshMeta, toast]);
 
   const filter = useMemo<NoteFilter>(() => {
-    const f: NoteFilter = { q: dq, kind: kind || undefined, source: source || undefined, hasAi: hasAi || undefined };
+    const f: NoteFilter = { q: dq, kind: kind || undefined, source: source || undefined, hasKeyPoints: hasKeyPoints || undefined };
     if (sel === "trash") f.trash = true;
     else if (sel === "none") f.folderId = null;
     else if (sel === "pinned") f.pinned = true;
@@ -76,7 +76,7 @@ export function Notes({ route }: { route: Route }) {
       f.to = to || undefined;
     }
     return f;
-  }, [dq, kind, source, hasAi, sel, range, from, to]);
+  }, [dq, kind, source, hasKeyPoints, sel, range, from, to]);
 
   const load = useCallback(async () => {
     try {
@@ -126,7 +126,7 @@ export function Notes({ route }: { route: Route }) {
     refreshMeta();
   };
 
-  const activeFilters = [kind, source, range, hasAi ? "ai" : ""].filter(Boolean).length;
+  const activeFilters = [kind, source, range, hasKeyPoints ? "kp" : ""].filter(Boolean).length;
 
   return (
     <div className="page" style={{ ["--c1" as string]: "var(--notes-1)" }}>
@@ -183,7 +183,7 @@ export function Notes({ route }: { route: Route }) {
               <option value="30">Last 30 days</option>
               <option value="custom">Pick dates…</option>
             </select>
-            <button className={`btn ${hasAi ? "primary" : "line"}`} style={{ minHeight: 42 }} onClick={() => setHasAi((v) => !v)}><Sparkles size={16} />With AI summary</button>
+            <button className={`btn ${hasKeyPoints ? "primary" : "line"}`} style={{ minHeight: 42 }} onClick={() => setHasKeyPoints((v) => !v)}><ListChecks size={16} />With key points</button>
           </div>
           {range === "custom" && (
             <div className="row">
@@ -194,7 +194,7 @@ export function Notes({ route }: { route: Route }) {
           )}
           <div className="between tiny">
             <span>{notes ? `${notes.length} note${notes.length === 1 ? "" : "s"}` : "Loading…"}{activeFilters ? ` · ${activeFilters} filter${activeFilters > 1 ? "s" : ""}` : ""}</span>
-            {(activeFilters > 0 || q) && <button className="tiny" style={{ color: "var(--accent)", fontWeight: 800 }} onClick={() => { setKind(""); setSource(""); setRange(""); setHasAi(false); setQ(""); }}>Clear all</button>}
+            {(activeFilters > 0 || q) && <button className="tiny" style={{ color: "var(--accent)", fontWeight: 800 }} onClick={() => { setKind(""); setSource(""); setRange(""); setHasKeyPoints(false); setQ(""); }}>Clear all</button>}
           </div>
 
           {notes === null ? (
@@ -217,11 +217,11 @@ export function Notes({ route }: { route: Route }) {
                       {folder && <span className="tag" style={{ background: `${fhex(folder.color)}22`, color: fhex(folder.color) }}>{folder.name}</span>}
                       {n.source_name && <span>{n.source_name}</span>}
                       <span>· {fmtDate(n.read_on, { day: "numeric", month: "short" })}</span>
-                      {n.ai_summary && <span className="tag ai">AI summary</span>}
+                      {n.key_points && <span className="tag ai">Key points</span>}
                       {n.ink?.length ? <span className="tag">Handwriting</span> : null}
                     </div>
                     <h3>{highlight(n.title || "Untitled", dq)}</h3>
-                    {inkOnly ? <InkThumb page={n.ink![0]} maxHeight={110} /> : (n.body_text || n.ai_summary?.in_short) && <p>{highlight(snippet(n.body_text || n.ai_summary?.in_short || "", dq), dq)}</p>}
+                    {inkOnly ? <InkThumb page={n.ink![0]} maxHeight={110} /> : (n.body_text || n.key_points?.lead) && <p>{highlight(snippet(n.body_text || n.key_points?.lead || "", dq), dq)}</p>}
                     <div className="row" style={{ justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
                       {sel === "trash" ? (
                         <>

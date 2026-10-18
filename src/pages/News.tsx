@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle } from "lucide-react";
-import { fetchArticle, lastSync, listNews, listSources, setNewsStatus, syncNews } from "../lib/api";
+import { addLink, listNews, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
 import type { NewsItem, Source } from "../lib/types";
 import { fmtDate, fmtTime, istDay, relTime } from "../lib/date";
 import { go } from "../lib/router";
-import { TOPICS } from "../../supabase/functions/_shared/classify";
+import { TOPICS } from "../../shared/classify";
 import { errMsg, Skeleton, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 
@@ -13,7 +13,6 @@ export const srcColor = (key: string) => SRC_COLORS[[...key].reduce((a, ch) => a
 export const LEVEL: Record<NewsItem["content_level"], string> = { full: "Full text", excerpt: "Excerpt", headline: "Headline only" };
 
 type View = "today" | "unread" | "saved" | "all";
-const AUTO_SYNC_MIN = 60;
 
 export function News() {
   const [items, setItems] = useState<NewsItem[] | null>(null);
@@ -42,17 +41,16 @@ export function News() {
     }
   }, [topic, src, view, toast]);
 
+  // Headlines are fetched every hour by a scheduled job; Refresh loads the latest file.
   const sync = useCallback(async (force: boolean) => {
     setSyncing(true);
     try {
-      const r = await syncNews(force);
-      if (r.synced_at) setSynced(r.synced_at);
-      setSources(await listSources());
+      if (force) await loadNewsFile(true);
+      const h = await newsHealth();
+      setSynced(h.generatedAt);
+      setSources(h.sources);
       await load();
-      if (force && r.sources) {
-        const n = Object.values(r.sources).reduce((a, s) => a + s.count, 0);
-        toast(n ? `${n} new article${n === 1 ? "" : "s"}` : "No new articles since the last check");
-      }
+      if (force) toast(`Updated ${relTime(h.generatedAt)}. New headlines arrive every hour.`);
     } catch (e) {
       toast(errMsg(e), { bad: true });
     } finally {
@@ -62,13 +60,7 @@ export function News() {
 
   useEffect(() => {
     setTitle("News");
-    (async () => {
-      const s = await lastSync().catch(() => null);
-      setSynced(s?.last_news_sync ?? null);
-      setSources(await listSources().catch(() => []));
-      const stale = !s?.last_news_sync || Date.now() - Date.parse(s.last_news_sync) > AUTO_SYNC_MIN * 60_000;
-      if (stale) sync(false);
-    })();
+    sync(false);
   }, [sync]);
 
   useEffect(() => {
@@ -83,11 +75,12 @@ export function News() {
     if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
     setFetching(true);
     try {
-      const r = await fetchArticle({ url: u });
+      new URL(u);
+      const id = await addLink(u, "");
       setUrl("");
-      go(`read/${r.item.id}`);
+      go(`read/${id}`);
     } catch (err) {
-      toast(errMsg(err), { bad: true });
+      toast(err instanceof TypeError ? "That doesn't look like a web link" : errMsg(err), { bad: true });
     } finally {
       setFetching(false);
     }
@@ -106,7 +99,7 @@ export function News() {
     }
   };
 
-  const failing = sources.filter((s) => s.enabled && s.last_error && !s.last_count);
+  const failing = sources.filter((s) => !s.ok);
   const topics = useMemo(() => ["", ...TOPICS, "Editorial"], []);
 
   return (
@@ -125,14 +118,14 @@ export function News() {
       <form className="linkbar" onSubmit={openLink}>
         <label className="searchbox">
           <Link2 size={18} />
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste any article link to read and summarise it" aria-label="Article link" inputMode="url" />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste any article link to save it and take notes" aria-label="Article link" inputMode="url" />
         </label>
         <button className="btn primary" disabled={fetching || !url.trim()}>{fetching ? <Loader2 size={17} className="spin" /> : "Fetch"}</button>
       </form>
 
       <div className="sync">
         <span className={`dot ${failing.length ? "warn" : ""}`} />
-        <span>Last checked {relTime(synced)}{sources.length ? ` · ${sources.filter((s) => s.enabled).length} sources` : ""}</span>
+        <span>Last checked {relTime(synced)}{sources.length ? ` · ${sources.filter((s) => s.ok).length} sources` : ""}</span>
         {failing.length > 0 && (
           <a href="#/settings" className="tiny" style={{ color: "var(--warn)" }}>
             <AlertTriangle size={13} style={{ verticalAlign: -2 }} /> {failing.map((f) => f.name).join(", ")} not responding
@@ -156,7 +149,7 @@ export function News() {
       {sources.length > 0 && (
         <div className="chips" aria-label="Newspapers">
           <button className={`chip ${src === "" ? "on" : ""}`} onClick={() => setSrc("")}>All papers</button>
-          {sources.filter((s) => s.enabled).map((s) => (
+          {sources.map((s) => (
             <button key={s.key} className={`chip ${src === s.key ? "on" : ""}`} style={src === s.key ? { ["--c1" as string]: srcColor(s.key) } : undefined} onClick={() => setSrc(s.key)}>
               <i style={{ width: 8, height: 8, borderRadius: 4, background: srcColor(s.key) }} />{s.name}
             </button>
@@ -183,7 +176,6 @@ export function News() {
                 <span>{it.published_at ? `${fmtDate(it.published_at, { day: "numeric", month: "short" })}, ${fmtTime(it.published_at)}` : "Date not given"}</span>
                 {it.topics.slice(0, 2).map((t) => <span key={t} className="tag">{t}</span>)}
                 <span className={`tag ${it.content_level}`}>{LEVEL[it.content_level]}</span>
-                {(it.summaries?.short || it.summaries?.detailed) && <span className="tag ai">Summarised</span>}
               </div>
               <h3>{it.title}</h3>
               {it.description && <p>{it.description}</p>}

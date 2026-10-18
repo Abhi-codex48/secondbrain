@@ -1,104 +1,86 @@
 # Second Brain: UPSC notes and news
 
-A personal study website that works on Android, iPhone, tablet and desktop:
+A personal study website for Android, iPhone, tablet and desktop:
 
-- **News**: today's UPSC-related articles from ten major newspapers plus PIB, fetched automatically. Paste any article link to read it. Every article with readable text gets an AI summary in simple English.
-- **Notes**: your repository in folders. Rich text (bold, highlight in five colours, text colours, headings, lists, checklists, quotes, links, images), handwriting with a pen or finger, voice typing, live search and filters, pinning, version history and Trash.
+- **News**: today's UPSC-related headlines from ten major newspapers plus PIB, collected automatically every hour. Open an article, paste its text, and get its **key points** with no AI. You can also paste any link.
+- **Notes**: your repository in folders. You get:
+  - rich text: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images
+  - handwriting with a pen or finger, and voice typing
+  - live search and filters, pinning, version history and Trash
 - **More**: a to-do list, "What I studied today", and a search of everything you recorded on any date.
-- **Pen mode** on every screen: draw over whatever you are reading and save it as a handwriting note.
-- **Search** across your notes, saved news and Wikipedia, with a one-tap Google search.
-- **Backup**: download everything as JSON (restorable) or Markdown, restore safely, and free up storage.
+- **Pen mode** on every screen: draw over what you're reading and save it as a handwriting note.
+- **Search** across your notes, news and Wikipedia, with a one-tap Google search.
+- **Backup**: download everything as a restorable file or as Markdown, and free up space.
 
-Everything runs on free plans. No credit card is needed for any step below.
+No AI service is used, and nothing needs a credit card.
 
 ---
 
-## How it fits together
+## How it works
 
-| Part | Service (free plan) | What it does |
+| Part | Runs on (free) | What it does |
 |---|---|---|
-| Website | **GitHub Pages** (public repo) | Serves the app |
-| Database, login, image storage | **Supabase** | Stores your notes privately; row-level security means only your account can read them |
-| Server functions | **Supabase Edge Functions** | Fetch newspaper feeds, read articles, call the AI. API keys stay on the server |
-| AI summaries | **Google Gemini** (free tier, Flash-Lite model) | Summaries in simple English. Optional: the app works without them |
+| Website | **GitHub Pages** | Serves the app |
+| Login and your notes | **Google Firebase**: Authentication and Cloud Firestore, Spark plan | Sign in with Google; notes, folders, tasks and handwriting are stored privately and synced across devices. Works offline; changes sync when you reconnect. |
+| News | **GitHub Actions**, every hour | Reads the newspapers' public RSS feeds and publishes the UPSC-related **headlines, links and short feed descriptions** with the site. Article text is never copied. |
+| Key points | **Your device** | Picks the most informative sentences, the facts and figures, and the laws, bodies and schemes mentioned, straight from the text you paste. Nothing is reworded, so nothing is made up. |
 
-Free-plan limits as published when this was built (check the providers' pages for current values):
-- Supabase free: 500 MB database, 1 GB file storage, 2 projects. **A free project is paused after 7 days without activity**; your data is kept and you restore it from the Supabase dashboard. Daily use keeps it active.
-- Gemini's free tier covers only the Flash and Flash-Lite models, with per-day limits that change over time (Flash-Lite has the largest allowance, reported at about 500 requests a day in late 2026; your exact limit shows at aistudio.google.com/rate-limit). The app also caps itself at 150 AI requests per day (`AI_DAILY_LIMIT`). When a limit is reached, reading and writing notes keep working.
-- **Privacy:** Google's pricing page states that content sent on the Gemini *free* tier may be used to improve Google's products. Only article text (or a note's typed text when you tap "Summarise with AI") is ever sent. Leave the Gemini key out if you prefer; everything except summaries still works.
+Firebase free (Spark) plan limits, from third-party pricing guides at build time; check the Firebase console for current values:
+- about 1 GB of stored data
+- about 50,000 reads and 20,000 writes a day
+
+The app is built to stay well inside these limits:
+- notes are cached on the device, and only changed notes are downloaded
+- images are shrunk before saving
+
+Cloud Storage and Cloud Functions need the paid Blaze plan, so this app doesn't use them. That's why images are stored inside the note itself (about 1 MB per note).
 
 ---
 
-## One-time setup (about 20 minutes)
+## One-time setup (about 5 minutes, all clicks)
 
-### 1. Create the Supabase project
-1. Sign up at [supabase.com](https://supabase.com) and click **New project**.
-2. Name it `secondbrain`, choose the region **Mumbai (ap-south-1)**, and set a **database password**. Save the password somewhere safe.
-3. When it's ready, open **Project Settings → API** and copy:
-   - **Project URL** (looks like `https://abcd1234.supabase.co`). The part before `.supabase.co` is your **project ref**.
-   - **anon public** key.
-4. Open your account menu → **Access Tokens** → **Generate new token**. Copy it.
-5. Open **Authentication → URL Configuration** and set **Site URL** to `https://abhi-codex48.github.io/secondbrain/`.
+1. Go to [console.firebase.google.com](https://console.firebase.google.com) and click **Create a project**. Name it `secondbrain`. Google Analytics isn't needed.
+2. **Build → Authentication → Get started → Sign-in method → Google → Enable → Save.**
+3. In **Authentication → Settings → Authorized domains**, click **Add domain** and add `abhi-codex48.github.io`.
+4. **Build → Firestore Database → Create database.** Pick a location (e.g. `asia-south1`, Mumbai) and **Start in production mode**.
+5. In **Firestore → Rules**, replace everything with the contents of [`firestore.rules`](firestore.rules) and click **Publish**. This makes your notes readable and writable only by you.
+6. Open **Project settings** (gear icon) → **General** → **Your apps** → click the **Web** icon `</>`. Name it `secondbrain` and click **Register app** (no hosting needed). Copy the `firebaseConfig` values it shows into [`src/firebase-config.ts`](src/firebase-config.ts), or send them to Claude to add. These values are meant to be public; the rules from step 5 protect your data.
 
-### 2. Get a free AI key
-Sign in at [aistudio.google.com](https://aistudio.google.com) with your Google account and click **Get API key → Create API key**. No card is needed. Do not turn on billing: that replaces the free allowance with paid usage.
+After the config is committed, the site rebuilds by itself. Open **https://abhi-codex48.github.io/secondbrain/** and tap **Continue with Google**.
 
-### 3. Add the values to GitHub
-Open the repository on GitHub, then **Settings → Secrets and variables → Actions**.
-
-Under **Secrets**, add:
-
-| Name | Value |
-|---|---|
-| `SUPABASE_ACCESS_TOKEN` | token from step 1.4 |
-| `SUPABASE_PROJECT_REF` | project ref from step 1.3 |
-| `SUPABASE_DB_PASSWORD` | database password from step 1.2 |
-| `GEMINI_API_KEY` | Gemini key (leave out to run without AI) |
-| `GEMINI_MODEL` | optional: a different Gemini model name from AI Studio |
-
-Under the **Variables** tab, add:
-
-| Name | Value |
-|---|---|
-| `VITE_SUPABASE_URL` | Project URL |
-| `VITE_SUPABASE_ANON_KEY` | anon public key |
-
-The anon key is designed to be public; your data is protected by row-level security. Never put the `service_role` key anywhere in this repo.
-
-### 4. Turn on the website
-1. Merge this code into the `main` branch.
-2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
-3. Open the **Actions** tab, choose **Set up Supabase (database + server functions)**, and click **Run workflow**. It creates the tables and security rules and deploys the three server functions.
-4. In **Actions**, run **Deploy website** (it also runs on every push to `main`).
-5. Your site is at **https://abhi-codex48.github.io/secondbrain/**.
-
-### 5. Create your account and keep it private
-1. Open the site, tap **Create account**, and confirm the email Supabase sends you.
-2. In Supabase, open **Authentication → Sign In / Providers** and turn **off "Allow new users to sign up"**. Only your account can then sign in.
-
-### 6. Put it on your phone's home screen
+To put it on your phone's home screen:
 - **Android (Chrome):** menu ⋮ → **Add to Home screen**.
-- **iPhone/iPad (Safari):** Share → **Add to Home Screen**.
+- **iPhone (Safari):** Share → **Add to Home Screen**.
 
 ---
 
 ## Using it
 
-**News.** It opens with today's articles, filtered to UPSC topics (Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health, Editorial). News is checked automatically when you open the page (at most once an hour), or when you tap **Refresh**. Each card shows how much text was available: **Full text**, **Excerpt** or **Headline only**. A summary is never made from a headline alone. For paywalled or blocked articles, use **Open original** or **Paste article text**.
+**News.**
+- The page opens with today's headlines, filtered to UPSC topics: Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health and Editorial.
+- **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Deccan Herald, The Tribune, The New Indian Express, and PIB. If a paper's own feed fails, its headlines come from a Google News search for that site. Settings shows which sources are working.
+- **To study an article:** tap it, then **Open article** to read it on the newspaper's site. Copy the text and **Paste article text**. You get the gist, key points, facts and figures, and the laws, bodies and schemes it mentions. Add your own note and **Save to notes**. Pasted text stays private in your account.
 
-**Sources** (editable in Settings → News sources): The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Deccan Herald, The Tribune, The New Indian Express, and PIB. Where a paper's own RSS feed doesn't work, its headlines come from Google News search for that site (headlines only). Settings shows which sources are responding.
+**Key points without AI.**
+- The app scores every sentence by how many of the article's important words it contains, where it sits in the article, and whether it shares words with the headline. It then shows the best ones in their original order.
+- Sentences with numbers (%, ₹, crore, lakh, dates) are listed as facts.
+- Names ending in Act, Ministry, Commission, Scheme, Court and similar, plus Article and Section numbers, are listed as "mentioned".
+- It quotes the article exactly, so it can't invent anything. It also can't explain or simplify.
 
-**Handwriting.** Use **Write by hand** in any note. You get a pen with pressure from a stylus, a highlighter, an eraser (removes whole strokes), six colours, four sizes, undo/redo, and lined, grid or plain paper. **Stylus-only mode** turns on automatically the first time a stylus is used, so your palm doesn't draw; a finger then scrolls the page. Pages grow as you write, and any page can be saved as a PNG image.
+**Handwriting.**
+- Tap **Write by hand** in any note.
+- Tools: a pressure-sensitive pen with a stylus, a highlighter, an eraser that removes whole strokes, colours, sizes, and undo/redo.
+- Paper: lined, grid or plain.
+- **Stylus-only mode** turns on the first time a stylus is used, so your palm doesn't draw and a finger scrolls the page.
+- Each page can be saved as a PNG image.
 
-**Voice typing** (microphone button in the editor) uses the browser's speech recognition. It works in Chrome and Edge and most versions of Safari, but not in Firefox. Chrome sends the audio to Google to convert it to text. Your keyboard's own mic key works everywhere.
-
-**Dates.** Dates are shown in India time. Each note keeps the source's publication date (or "not given"), the date you read it (you can change it), and its created and edited times.
+**Voice typing** is the microphone button in the editor. It works in Chrome, Edge and most versions of Safari, but not Firefox. Your keyboard's own mic key works everywhere.
 
 **Safety nets.**
-- Notes autosave. If the connection drops, the latest text is kept on the device and saved when you're back online.
-- Editing creates version history (Restore from the clock icon).
+- Notes save on the device instantly and sync in the background, offline too.
+- Editing keeps version history (the clock icon).
 - Deleted notes go to Trash.
-- Restoring the same backup twice does not create duplicates.
+- Restoring the same backup twice doesn't create duplicates.
 
 ---
 
@@ -106,21 +88,20 @@ The anon key is designed to be public; your data is protected by row-level secur
 
 ```bash
 npm install
-cp .env.example .env.local   # add your Supabase URL and anon key
-npm run dev                  # http://localhost:5173
-npm test                     # unit tests + database security tests (in-memory Postgres)
+npm run dev        # http://localhost:5173 (needs src/firebase-config.ts filled in)
+npm test           # topic classifier, feed parser, key points
 npm run build
+node --experimental-strip-types scripts/fetch-news.ts news.json   # try the news fetcher
 ```
 
-- `src/`: React app (pages, the handwriting engine in `components/Ink.tsx`, the editor in `components/RichEditor.tsx`).
-- `supabase/migrations/`: tables, row-level security, version-history trigger, storage bucket.
-- `supabase/functions/`: `news-sync`, `fetch-article` (with guards against private-network addresses), and `summarise`.
-- `supabase/functions/_shared/`: feed parsing, the topic classifier, URL safety checks and AI prompts. All are tested in `tests/`.
+- `src/lib/api.ts`: Firestore data layer (device cache plus downloading only what changed).
+- `src/lib/keypoints.ts`: key-point extraction.
+- `scripts/fetch-news.ts`: the hourly news collector.
+- `shared/`: feed list, RSS parser and UPSC topic classifier.
+- `firestore.rules`: security rules.
 
 ## Known limits
-- Paywalled articles (for example premium stories) can't be read automatically. Paste the text instead.
-- Some feed links in the default list could not be confirmed when this was built. A failing feed shows in Settings and falls back to Google News headlines. You can replace feed links there.
-- Topic tags come from keywords, so an article is sometimes tagged with the wrong topic.
-- AI summaries can contain mistakes. They are labelled as drafts, kept separate from your own writing, and say what text they were based on.
-- Handwriting is stored as editable strokes. It is not converted to typed text.
-- Image files are not inside the JSON backup; only their links are.
+- News articles must be opened on the newspaper's site; the app can't fetch their text by itself without a paid server.
+- Scheduled GitHub runs can be delayed at busy times, and GitHub pauses them if the repository has no activity for 60 days. Any push, or **Run workflow** in the Actions tab, restarts them.
+- Topic tags come from keywords, so some articles may be tagged with the wrong topic.
+- Each note can hold about 1 MB, which is enough for long text, several images or many pages of handwriting.

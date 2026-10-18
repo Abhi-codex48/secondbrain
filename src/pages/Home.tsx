@@ -29,7 +29,7 @@ export function Home() {
           {c && <span className="count">{c.news} today</span>}
           <span className="ic"><Newspaper size={26} /></span>
           <h2>News</h2>
-          <p>Today's UPSC news from ten major newspapers and PIB. Paste any link too. AI summary on every article.</p>
+          <p>Today's UPSC news from ten major newspapers and PIB, updated every hour. Key points from any article you paste.</p>
           <span className="go">Open News <ArrowRight size={18} /></span>
         </a>
         <a className="tile t-notes" href="#/notes">

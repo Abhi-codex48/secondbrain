@@ -10,7 +10,7 @@ import {
   Bold, Italic, Underline as UIcon, Strikethrough, Highlighter, Palette, Heading1, Heading2, List, ListOrdered, ListChecks,
   Quote, Code, Minus, Link2, ImagePlus, Undo2, Redo2, RemoveFormatting, Mic, MicOff, Loader2,
 } from "lucide-react";
-import { uploadImage } from "../lib/api";
+import { imageToDataUrl } from "../lib/api";
 import { useToast, errMsg } from "./ui";
 
 const HIGHLIGHTS = [
@@ -94,7 +94,7 @@ function Toolbar({ editor }: { editor: Editor }) {
     if (!f) return;
     setUploading(true);
     try {
-      const src = await uploadImage(f);
+      const src = await imageToDataUrl(f);
       c().setImage({ src }).run();
     } catch (e) {
       toast(errMsg(e), { bad: true });
@@ -164,7 +164,7 @@ export function RichEditor({ html, onChange, placeholder, compact, autofocus }: 
       Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Image.configure({ inline: false }),
+      Image.configure({ inline: false, allowBase64: true }), // images are stored inside the note
       Placeholder.configure({ placeholder: placeholder ?? "Start writing…" }),
     ],
     content: html,

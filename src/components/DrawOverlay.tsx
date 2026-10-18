@@ -32,11 +32,11 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
     if (!h.strokes.length) return toast("Draw something first");
     setSaving(true);
     try {
-      const n = await saveNote({
+      const { note: n } = saveNote({
         kind: "ink",
         title: `Sketch · ${context.title}`.slice(0, 120),
         body_html: `<p>Drawn over <a href="${context.href}">${context.title.replace(/</g, "&lt;")}</a></p>`,
-        ink: [{ height: Math.round(vh), strokes: h.strokes }],
+        ink: [{ id: crypto.randomUUID(), height: Math.round(vh), strokes: h.strokes }],
       });
       toast("Saved as a handwriting note", { action: { label: "Open", run: () => go(`note/${n.id}`) } });
       onClose();

@@ -28,7 +28,7 @@ export function Search({ route }: { route: Route }) {
     const ctrl = new AbortController();
     setNotes(null); setNews(null); setWiki(null); setWikiErr(false);
     listNotes({ q: dq, limit: 30 }).then(setNotes).catch(() => setNotes([]));
-    listNews({ q: dq, limit: 20 }).then(setNews).catch(() => setNews([]));
+    listNews({ q: dq }).then((x) => x.slice(0, 20)).then(setNews).catch(() => setNews([]));
     searchWikipedia(dq, ctrl.signal).then(setWiki).catch((e) => { if (e.name !== "AbortError") { setWiki([]); setWikiErr(true); } });
     return () => ctrl.abort();
   }, [dq]);

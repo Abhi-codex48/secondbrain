@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Loader2, RefreshCw, Sparkles, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
-import { fetchArticle, findNoteForNews, getNews, listFolders, saveNote, setNewsStatus, summarise } from "../lib/api";
-import type { Folder, NewsItem, Summary } from "../lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { findNoteForNews, getNews, listFolders, savePastedText, saveNote, setNewsStatus } from "../lib/api";
+import type { Folder, NewsItem } from "../lib/types";
+import { keyPoints, keyPointsToHtml } from "../lib/keypoints";
 import { fmtDate, fmtTime } from "../lib/date";
 import { back, go } from "../lib/router";
 import { RichEditor } from "../components/RichEditor";
-import { SummaryView, summaryToHtml } from "../components/SummaryView";
+import { KeyPointsView } from "../components/KeyPointsView";
 import { errMsg, Skeleton, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 import { LEVEL, srcColor } from "./News";
@@ -14,12 +15,8 @@ type Len = "short" | "detailed";
 
 export function Reader({ id }: { id: string }) {
   const [item, setItem] = useState<NewsItem | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [fetching, setFetching] = useState(false);
   const [len, setLen] = useState<Len>("short");
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [sumErr, setSumErr] = useState<{ msg: string; code?: string } | null>(null);
-  const [summing, setSumming] = useState(false);
+  const [pasted, setPasted] = useState(false);
   const [pasting, setPasting] = useState(false);
   const [paste, setPaste] = useState("");
   const [showText, setShowText] = useState(false);
@@ -30,40 +27,6 @@ export function Reader({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const started = useRef(false);
-
-  const runSummary = useCallback(async (it: NewsItem, l: Len, opts: { regenerate?: boolean; text?: string } = {}) => {
-    const cached = it.summaries?.[l];
-    if (cached && !opts.regenerate && !opts.text) {
-      setSummary(cached);
-      return;
-    }
-    setSumming(true);
-    setSumErr(null);
-    try {
-      const r = await summarise({ newsId: it.id, length: l, regenerate: opts.regenerate, text: opts.text });
-      setSummary(r.summary);
-      setItem((x) => (x ? { ...x, summaries: { ...(opts.text ? {} : x.summaries), [l]: r.summary }, ...(opts.text ? { article_text: opts.text, content_level: "full" as const } : {}) } : x));
-    } catch (e) {
-      setSumErr({ msg: errMsg(e), code: (e as { code?: string }).code });
-    } finally {
-      setSumming(false);
-    }
-  }, []);
-
-  const loadText = useCallback(async (it: NewsItem, refetch = false) => {
-    setFetching(true);
-    setFailure(null);
-    try {
-      const r = await fetchArticle({ newsId: it.id, refetch });
-      setItem(r.item);
-      if (r.failure) setFailure(r.failure);
-      if (r.item.article_text) runSummary(r.item, "short");
-    } catch (e) {
-      setFailure(errMsg(e));
-    } finally {
-      setFetching(false);
-    }
-  }, [runSummary]);
 
   useEffect(() => {
     if (started.current) return;
@@ -78,37 +41,40 @@ export function Reader({ id }: { id: string }) {
         const guess = fs.find((f) => it.topics.some((t) => f.name.toLowerCase().includes(t.toLowerCase().split(" ")[0])));
         setFolderId(guess?.id ?? "");
         if (it.status === "new") setNewsStatus(it.id, "read").catch(() => {});
-        if (it.article_text) runSummary(it, "short");
-        else loadText(it);
       } catch (e) {
         toast(errMsg(e), { bad: true });
       }
     })();
-  }, [id, loadText, runSummary, toast]);
+  }, [id, toast]);
 
-  const switchLen = (l: Len) => {
-    setLen(l);
-    if (item?.article_text) runSummary(item, l);
-  };
+  // Key points are worked out on this device from the article text: instant, free, no AI.
+  const points = useMemo(
+    () => (item?.article_text ? keyPoints(item.article_text, { title: item.title, detailed: len === "detailed", basedOn: pasted ? "pasted" : item.content_level === "full" ? "full" : "excerpt" }) : null),
+    [item?.article_text, item?.title, item?.content_level, len, pasted],
+  );
 
   const submitPaste = async () => {
     if (!item) return;
     if (paste.trim().length < 200) return toast("Paste at least a few paragraphs of the article", { bad: true });
-    setPasting(false);
-    setFailure(null);
-    await runSummary(item, len, { text: paste.trim() });
-    setPaste("");
+    try {
+      setItem(await savePastedText(item, paste.trim()));
+      setPasted(true);
+      setPasting(false);
+      setPaste("");
+    } catch (e) {
+      toast(errMsg(e), { bad: true });
+    }
   };
 
   const save = async () => {
     if (!item) return;
     setSaving(true);
     try {
-      const n = await saveNote({
+      const { note: n } = saveNote({
         kind: "article",
         title: item.title,
         body_html: mine,
-        ai_summary: summary ?? item.summaries?.short ?? item.summaries?.detailed ?? null,
+        key_points: points,
         source_url: item.url,
         source_name: item.source_name,
         source_published_at: item.published_at,
@@ -150,22 +116,17 @@ export function Reader({ id }: { id: string }) {
 
       <div className="reader">
         <div className="stack">
-          {fetching && (
-            <div className="layer ai"><span className="tag ai"><Loader2 size={13} className="spin" />Reading the article…</span><Skeleton lines={3} /></div>
-          )}
-
-          {!fetching && noText && (
-            <div className="alert warn">
-              <AlertTriangle size={20} color="var(--warn)" />
+          {noText && !pasting && (
+            <div className="alert info">
+              <ExternalLink size={20} color="var(--accent)" />
               <div className="stack" style={{ gap: 10 }}>
                 <div>
-                  <b>Only the headline is available</b>
-                  <p className="muted">{failure ?? "The article text could not be read."} No summary is made from a headline alone.</p>
+                  <b>Read it on the newspaper's site</b>
+                  <p className="muted">Open the article, then copy its text and paste it here. You'll get the key points, facts and figures, and the laws and bodies it mentions, picked straight from the article.</p>
                 </div>
                 <div className="row">
-                  <a className="btn soft sm" href={item.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Open original</a>
+                  <a className="btn primary sm" href={item.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Open article</a>
                   <button className="btn soft sm" onClick={() => setPasting(true)}><ClipboardPaste size={16} />Paste article text</button>
-                  <button className="btn soft sm" onClick={() => loadText(item, true)}><RefreshCw size={16} />Try again</button>
                 </div>
               </div>
             </div>
@@ -174,43 +135,30 @@ export function Reader({ id }: { id: string }) {
           {pasting && (
             <div className="layer src">
               <h3>Paste the article text</h3>
-              <p className="tiny">Copy the text from the newspaper site or e-paper and paste it here. It is stored privately and summarised.</p>
+              <p className="tiny">Copy the text from the newspaper site or e-paper and paste it here. It is stored privately and key points are picked from it.</p>
               <textarea className="textarea" value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Paste here…" autoFocus style={{ minHeight: 180 }} />
               <div className="row" style={{ justifyContent: "flex-end" }}>
                 <button className="btn soft" onClick={() => setPasting(false)}>Cancel</button>
-                <button className="btn primary" onClick={submitPaste}><Sparkles size={16} />Summarise</button>
+                <button className="btn primary" onClick={submitPaste}><ListChecks size={16} />Get key points</button>
               </div>
             </div>
           )}
 
           {!noText && (
             <div className="seg" style={{ maxWidth: 340 }}>
-              <button className={len === "short" ? "on" : ""} onClick={() => switchLen("short")}>Short</button>
-              <button className={len === "detailed" ? "on" : ""} onClick={() => switchLen("detailed")}>Detailed</button>
+              <button className={len === "short" ? "on" : ""} onClick={() => setLen("short")}>Short</button>
+              <button className={len === "detailed" ? "on" : ""} onClick={() => setLen("detailed")}>Detailed</button>
             </div>
           )}
 
-          {summing && <div className="layer ai"><span className="tag ai"><Sparkles size={13} />Summarising in simple English…</span><Skeleton lines={4} /></div>}
-
-          {!summing && sumErr && (
-            <div className={`alert ${sumErr.code === "not_configured" ? "info" : "warn"}`}>
-              <AlertTriangle size={20} />
-              <div className="stack" style={{ gap: 8 }}>
-                <p>{sumErr.msg}</p>
-                {item.article_text && <button className="btn soft sm" style={{ alignSelf: "flex-start" }} onClick={() => runSummary(item, len, { regenerate: true })}><RefreshCw size={16} />Try again</button>}
-              </div>
-            </div>
+          {item.article_text && !points && (
+            <div className="alert info"><AlertTriangle size={20} /><p>The text is too short to pick key points from. Read it below.</p></div>
           )}
 
-          {!summing && summary && (
-            <SummaryView
-              s={summary}
-              actions={
-                <>
-                  <button className="btn soft sm" onClick={() => setMine((m) => `${m}${summaryToHtml(summary)}`)} title="Copy the summary into your note">Copy to note</button>
-                  <button className="icon-btn sm" onClick={() => runSummary(item, len, { regenerate: true })} aria-label="Make a new summary" title="Make a new summary"><RefreshCw size={17} /></button>
-                </>
-              }
+          {points && (
+            <KeyPointsView
+              k={points}
+              actions={<button className="btn soft sm" onClick={() => setMine((m) => `${m}${keyPointsToHtml(points)}`)} title="Copy the key points into your note">Copy to note</button>}
             />
           )}
 
@@ -248,7 +196,7 @@ export function Reader({ id }: { id: string }) {
                 {saving ? <Loader2 size={17} className="spin" /> : <Save size={17} />}Save to notes
               </button>
             )}
-            <p className="tiny">Saves the link, dates, the AI summary and your note together.</p>
+            <p className="tiny">Saves the link, dates, the key points and your note together.</p>
           </div>
         </aside>
       </div>

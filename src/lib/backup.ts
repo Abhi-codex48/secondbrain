@@ -1,41 +1,25 @@
 import JSZip from "jszip";
-import { supabase } from "./supabase";
-import type { Folder, Note, Summary } from "./types";
+import { exportAll, importAll } from "./api";
+import type { Folder, Note } from "./types";
+import type { KeyPoints } from "./keypoints";
 
-const BACKUP_VERSION = 1;
-const TABLES = ["folders", "notes", "note_versions", "todos", "sources", "news_items"] as const;
-type Table = (typeof TABLES)[number];
-
-async function all(table: Table): Promise<Record<string, unknown>[]> {
-  const out: Record<string, unknown>[] = [];
-  for (let from = 0; ; from += 1000) {
-    let q = supabase.from(table).select("*").range(from, from + 999);
-    if (table === "news_items") q = q.eq("status", "saved"); // only saved news is worth backing up
-    const { data, error } = await q;
-    if (error) throw new Error(`${table}: ${error.message}`);
-    out.push(...(data ?? []));
-    if (!data || data.length < 1000) break;
-  }
-  return out;
-}
+const BACKUP_VERSION = 2;
 
 export interface Backup {
   app: "secondbrain";
   version: number;
   exported_at: string;
   note: string;
-  data: Record<Table, Record<string, unknown>[]>;
+  data: Record<string, Record<string, unknown>[]>;
 }
 
 export async function buildBackup(): Promise<Backup> {
-  const data = {} as Backup["data"];
-  for (const t of TABLES) data[t] = await all(t);
   return {
     app: "secondbrain",
     version: BACKUP_VERSION,
     exported_at: new Date().toISOString(),
-    note: "Images are referenced by link only; the image files themselves are not inside this backup.",
-    data,
+    note: "Notes (with images and handwriting inside them), folders, tasks, news marks and pasted article text. Version history is not included.",
+    data: await exportAll(),
   };
 }
 
@@ -51,12 +35,10 @@ export function downloadBlob(blob: Blob, name: string) {
 
 export async function downloadJsonBackup() {
   const b = await buildBackup();
-  const day = b.exported_at.slice(0, 10);
-  downloadBlob(new Blob([JSON.stringify(b, null, 1)], { type: "application/json" }), `secondbrain-backup-${day}.json`);
-  return b;
+  downloadBlob(new Blob([JSON.stringify(b)], { type: "application/json" }), `secondbrain-backup-${b.exported_at.slice(0, 10)}.json`);
 }
 
-/** Validates a backup file and upserts every row by id, so restoring twice creates no duplicates. */
+/** Validates a backup and writes every item by its id, so restoring twice creates no duplicates. */
 export async function restoreBackup(file: File, onProgress?: (msg: string) => void) {
   let b: Backup;
   try {
@@ -65,22 +47,8 @@ export async function restoreBackup(file: File, onProgress?: (msg: string) => vo
     throw new Error("This file is not a valid backup (it is not JSON).");
   }
   if (b?.app !== "secondbrain" || typeof b.data !== "object") throw new Error("This file is not a Second Brain backup.");
-  if (b.version > BACKUP_VERSION) throw new Error("This backup was made by a newer version of the app.");
-  const { data: u } = await supabase.auth.getUser();
-  const uid = u.user!.id;
-  const counts: Record<string, number> = {};
-  for (const t of TABLES) {
-    const rows: Record<string, unknown>[] = (b.data[t] ?? []).filter((r) => r && typeof r === "object").map((r) => ({ ...r, user_id: uid }));
-    if (t !== "sources" && rows.some((r) => typeof r.id !== "string")) throw new Error(`Rows in "${t}" are missing ids; the file may be damaged.`);
-    for (let i = 0; i < rows.length; i += 200) {
-      onProgress?.(`Restoring ${t} (${Math.min(i + 200, rows.length)}/${rows.length})`);
-      const conflict = t === "sources" ? "user_id,key" : t === "news_items" ? "user_id,url" : "id";
-      const { error } = await supabase.from(t).upsert(rows.slice(i, i + 200), { onConflict: conflict });
-      if (error) throw new Error(`${t}: ${error.message}`);
-    }
-    counts[t] = rows.length;
-  }
-  return counts;
+  if (b.version !== BACKUP_VERSION) throw new Error("This backup was made by a different version of the app and can't be restored here.");
+  return importAll(b.data, onProgress);
 }
 
 // ---------- Markdown export ----------
@@ -103,7 +71,7 @@ function htmlToMarkdown(html: string): string {
       case "MARK": return `==${inner()}==`;
       case "CODE": return `\`${inner()}\``;
       case "A": return `[${inner()}](${n.getAttribute("href") ?? ""})`;
-      case "IMG": return `![image](${n.getAttribute("src") ?? ""})`;
+      case "IMG": return "[image: kept in the JSON backup]";
       case "BLOCKQUOTE": return inner().trim().split("\n").map((l) => `> ${l}`).join("\n") + "\n\n";
       case "UL": case "OL": {
         const ordered = n.tagName === "OL";
@@ -119,9 +87,9 @@ function htmlToMarkdown(html: string): string {
   return walk(d).replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function summaryToMarkdown(s: Summary): string {
+function keyPointsToMarkdown(k: KeyPoints): string {
   const sec = (h: string, xs: string[]) => (xs.length ? `**${h}**\n${xs.map((x) => `- ${x}`).join("\n")}\n\n` : "");
-  return `## AI summary (draft, check facts)\n\n${s.in_short}\n\n${sec("What happened", s.what_happened)}${sec("Why it matters", s.why_it_matters)}${sec("Key facts", s.key_facts)}${sec("Mains angle", s.mains_angle)}${sec("Prelims points", s.prelims_points)}${sec("Read further", s.read_further)}`;
+  return `## Key points (picked from the source text)\n\n${k.lead}\n\n${sec("Key points", k.points)}${sec("Facts and figures", k.facts)}${sec("Mentioned", k.mentions)}`;
 }
 
 const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "Untitled";
@@ -150,13 +118,11 @@ export async function downloadMarkdownZip() {
       n.ink?.length ? `handwriting_pages: ${n.ink.length} (kept in the JSON backup)` : "",
       "---",
     ].filter(Boolean).join("\n");
-    const body = `${front}\n\n# ${n.title || "Untitled"}\n\n${htmlToMarkdown(n.body_html)}\n\n${n.ai_summary ? summaryToMarkdown(n.ai_summary) : ""}`;
-    zip.file(path, body);
+    zip.file(path, `${front}\n\n# ${n.title || "Untitled"}\n\n${htmlToMarkdown(n.body_html)}\n\n${n.key_points ? keyPointsToMarkdown(n.key_points) : ""}`);
     index.push([n.title, folder, n.kind, n.source_name, n.source_url, n.read_on, n.created_at, n.updated_at, n.deleted_at ? "yes" : "no"].map(csv).join(","));
   }
   zip.file("index.csv", index.join("\n"));
-  zip.file("backup.json", JSON.stringify(b, null, 1));
-  zip.file("README.txt", "Notes as Markdown files by folder, an index.csv, and backup.json (use this to restore in Settings). Images are links only.");
-  const blob = await zip.generateAsync({ type: "blob" });
-  downloadBlob(blob, `secondbrain-export-${b.exported_at.slice(0, 10)}.zip`);
+  zip.file("backup.json", JSON.stringify(b));
+  zip.file("README.txt", "Notes as Markdown files by folder, an index.csv, and backup.json (restore it in Settings). Images and handwriting are inside backup.json.");
+  downloadBlob(await zip.generateAsync({ type: "blob" }), `secondbrain-export-${b.exported_at.slice(0, 10)}.zip`);
 }

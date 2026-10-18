@@ -1,3 +1,6 @@
+import type { KeyPoints } from "./keypoints";
+export type { KeyPoints };
+
 export interface Folder {
   id: string;
   name: string;
@@ -20,20 +23,6 @@ export interface InkPage {
   strokes: Stroke[];
 }
 
-export interface Summary {
-  in_short: string;
-  what_happened: string[];
-  why_it_matters: string[];
-  key_facts: string[];
-  upsc_papers: string[];
-  mains_angle: string[];
-  prelims_points: string[];
-  read_further: string[];
-  based_on: "full" | "excerpt" | "pasted" | "note";
-  provider?: string;
-  model?: string;
-  created_at?: string;
-}
 
 export interface Note {
   id: string;
@@ -43,7 +32,7 @@ export interface Note {
   body_html: string;
   body_text: string;
   ink: InkPage[] | null;
-  ai_summary: Summary | null;
+  key_points: KeyPoints | null;
   source_url: string | null;
   source_name: string | null;
   source_published_at: string | null;
@@ -54,6 +43,8 @@ export interface Note {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /** Permanently deleted: content removed, kept as a marker so other devices remove it too. */
+  purged?: boolean;
 }
 
 export interface NewsItem {
@@ -67,8 +58,8 @@ export interface NewsItem {
   fetched_at: string;
   topics: string[];
   content_level: "headline" | "excerpt" | "full";
+  /** Text you pasted for this article (private, stored in your account). */
   article_text: string | null;
-  summaries: Partial<Record<"short" | "detailed", Summary>>;
   status: "new" | "read" | "saved" | "dismissed";
   read_at: string | null;
 }
@@ -82,16 +73,14 @@ export interface Todo {
   created_at: string;
 }
 
+/** Health of one newspaper in the latest hourly fetch. */
 export interface Source {
   key: string;
   name: string;
-  site: string;
-  feeds: string[];
-  enabled: boolean;
-  last_ok_at: string | null;
-  last_error: string | null;
-  last_count: number | null;
-  used_fallback: boolean;
+  ok: boolean;
+  count: number;
+  fallback: boolean;
+  error?: string;
 }
 
 export interface NoteVersion {
@@ -99,6 +88,6 @@ export interface NoteVersion {
   title: string | null;
   body_html: string | null;
   ink: InkPage[] | null;
-  ai_summary: Summary | null;
+  key_points: KeyPoints | null;
   created_at: string;
 }

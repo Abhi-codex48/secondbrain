@@ -127,7 +127,7 @@ function Activity({ fixed, from, to }: { fixed?: string; from?: string; to?: str
     if (!data) return [];
     type Item = { key: string; at: string; kind: "note" | "news" | "todo"; title: string; sub: string; href?: string };
     const items: Item[] = [
-      ...data.notes.map((n) => ({ key: `n${n.id}`, at: n.updated_at, kind: "note" as const, title: n.title || "Untitled", sub: `${n.kind === "article" ? "Saved article" : n.kind === "ink" ? "Handwriting" : "Note"}${n.source_name ? ` · ${n.source_name}` : ""}${n.ai_summary ? " · AI summary" : ""}`, href: `#/note/${n.id}` })),
+      ...data.notes.map((n) => ({ key: `n${n.id}`, at: n.updated_at, kind: "note" as const, title: n.title || "Untitled", sub: `${n.kind === "article" ? "Saved article" : n.kind === "ink" ? "Handwriting" : "Note"}${n.source_name ? ` · ${n.source_name}` : ""}${n.key_points ? " · key points" : ""}`, href: `#/note/${n.id}` })),
       ...data.news.map((n) => ({ key: `r${n.id}`, at: n.read_at!, kind: "news" as const, title: n.title, sub: `Read · ${n.source_name}`, href: `#/read/${n.id}` })),
       ...data.todos.map((x) => ({ key: `t${x.id}`, at: x.done_at!, kind: "todo" as const, title: x.text, sub: "Task done" })),
     ].filter((x) => !!x.at).sort((a, b) => b.at.localeCompare(a.at));

@@ -12,7 +12,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.118.0",
     "@tiptap/extension-highlight": "^3.32.0",
     "@tiptap/extension-image": "^3.32.0",
     "@tiptap/extension-list": "^3.32.0",
@@ -21,6 +20,7 @@
     "@tiptap/pm": "^3.32.0",
     "@tiptap/react": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",
+    "firebase": "^12.19.0",
     "jszip": "^3.10.2",
     "lucide-react": "^0.460.0",
     "perfect-freehand": "^1.2.3",
@@ -28,7 +28,6 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.2.17",
     "@types/node": "^22.20.5",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",

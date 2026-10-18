@@ -1,19 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Sun, Moon, Newspaper, Sparkles, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Pencil } from "lucide-react";
-import { deleteOldNews, deleteOldVersions, deleteUnusedImages, emptyTrash, lastSync, listSources, storageUsage, updateSource, type Usage } from "../lib/api";
+import { Palette, Sun, Moon, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut } from "lucide-react";
+import { deleteEverything, deleteOldNewsData, emptyTrash, newsHealth, storageUsage } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
-import { supabase } from "../lib/supabase";
+import { auth, signOut } from "../lib/firebase";
 import { applyTheme, currentTheme, PALETTES, type Mode, type PaletteId } from "../lib/theme";
 import type { Source } from "../lib/types";
 import { relTime } from "../lib/date";
-import { errMsg, Sheet, Skeleton, useConfirm, useToast } from "../components/ui";
+import { errMsg, Skeleton, useConfirm, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 
 const MB = 1024 * 1024;
 const fmtBytes = (b: number) => (b < 1024 ? `${b} B` : b < MB ? `${(b / 1024).toFixed(1)} KB` : `${(b / MB).toFixed(1)} MB`);
-// Supabase free plan limits as published at build time; check your dashboard for current values.
-const DB_LIMIT = 500 * MB;
-const FILE_LIMIT = 1024 * MB;
+// Firestore free (Spark) plan: about 1 GiB stored. Check the Firebase console for exact usage.
+const DB_LIMIT = 1024 * MB;
 
 function Section({ icon, title, children, color }: { icon: React.ReactNode; title: string; children: React.ReactNode; color: string }) {
   return (
@@ -29,26 +28,22 @@ function Section({ icon, title, children, color }: { icon: React.ReactNode; titl
 
 export function Settings() {
   const [theme, setTheme] = useState(currentTheme());
-  const [sources, setSources] = useState<Source[] | null>(null);
-  const [editing, setEditing] = useState<Source | null>(null);
-  const [usage, setUsage] = useState<Usage | null>(null);
-  const [ai, setAi] = useState<{ ai_count: number; ai_day: string | null } | null>(null);
+  const [health, setHealth] = useState<{ generatedAt: string | null; sources: Source[] } | null>(null);
+  const [usage, setUsage] = useState<Awaited<ReturnType<typeof storageUsage>> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
   const file = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const confirm = useConfirm();
+  const email = auth.currentUser?.email ?? "";
 
   const refresh = () => {
-    listSources().then(setSources).catch(() => setSources([]));
+    newsHealth().then(setHealth).catch(() => setHealth({ generatedAt: null, sources: [] }));
     storageUsage().then(setUsage).catch(() => setUsage(null));
-    lastSync().then((s) => setAi(s ? { ai_count: s.ai_count, ai_day: s.ai_day } : null)).catch(() => {});
   };
   useEffect(() => {
     setTitle("Settings");
     refresh();
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
   }, []);
 
   const pickTheme = (p?: PaletteId, m?: Mode) => setTheme(applyTheme(p ?? theme.palette, m ?? theme.mode));
@@ -66,11 +61,9 @@ export function Settings() {
     }
   };
 
-  const toggleSource = (s: Source) => run(`src-${s.key}`, () => updateSource(s.key, { enabled: !s.enabled }));
-
   const onRestore = async (f?: File) => {
     if (!f) return;
-    if (!(await confirm({ title: "Restore this backup?", body: "Notes, folders and tasks from the file are added back. Items that already exist are updated to the backup's version; nothing else is deleted. Restoring the same file twice does not create duplicates.", confirm: "Restore" }))) {
+    if (!(await confirm({ title: "Restore this backup?", body: "Notes, folders and tasks from the file are added back. Items that already exist are replaced by the backup's version; nothing else is deleted. Restoring the same file twice does not create duplicates.", confirm: "Restore" }))) {
       if (file.current) file.current.value = "";
       return;
     }
@@ -89,20 +82,12 @@ export function Settings() {
     }
   };
 
-  const deleteEverything = async () => {
-    if (!(await confirm({ title: "Delete everything?", body: "All notes, folders, tasks, news and images in your account will be permanently deleted. Download a backup first if you may need them.", confirm: "Delete everything", danger: true, typeToConfirm: "DELETE" }))) return;
-    await run("all", async () => {
-      for (const t of ["note_versions", "notes", "folders", "todos", "news_items"]) {
-        const { error } = await supabase.from(t).delete().not("id", "is", null);
-        if (error) throw new Error(error.message);
-      }
-      const { data: u } = await supabase.auth.getUser();
-      const { data: files } = await supabase.storage.from("attachments").list(u.user!.id, { limit: 1000 });
-      if (files?.length) await supabase.storage.from("attachments").remove(files.map((f) => `${u.user!.id}/${f.name}`));
-    }, "Everything was deleted");
+  const wipe = async () => {
+    if (!(await confirm({ title: "Delete everything?", body: "All notes, folders, tasks and saved news in your account will be permanently deleted. Download a backup first if you may need them.", confirm: "Delete everything", danger: true, typeToConfirm: "DELETE" }))) return;
+    await run("all", deleteEverything, "Everything was deleted");
   };
 
-  const dbBytes = usage ? usage.notes_bytes + usage.trash_bytes + usage.versions_bytes + usage.news_bytes : 0;
+  const total = usage ? usage.notes_bytes + usage.trash_bytes + usage.other_bytes : 0;
 
   return (
     <div className="page">
@@ -124,32 +109,25 @@ export function Settings() {
       </Section>
 
       <Section icon={<Newspaper size={19} />} title="News sources" color="var(--news-2)">
-        <p className="tiny">News is checked when you open News (at most once an hour) or when you tap Refresh. Only UPSC-related headlines are kept, and unsaved news older than 14 days is removed automatically. If a paper's own feed fails, its headlines come from Google News instead.</p>
-        {sources === null ? <Skeleton /> : sources.length === 0 ? <p className="muted">Open the News page once to set up the default sources.</p> : (
+        <p className="tiny">Headlines are collected automatically every hour from the newspapers' public feeds and only UPSC-related ones are kept. If a paper's own feed fails, its headlines come from Google News instead.</p>
+        {health === null ? <Skeleton /> : health.sources.length === 0 ? <p className="muted">The first hourly news update hasn't run yet.</p> : (
           <div>
-            {sources.map((s) => (
+            <p className="tiny">Last update {relTime(health.generatedAt)}</p>
+            {health.sources.map((s) => (
               <div key={s.key} className="set-row">
                 <div className="grow stack" style={{ gap: 2 }}>
                   <b>{s.name}</b>
-                  <span className="tiny">
-                    {!s.enabled ? "Off" : s.last_error && !s.last_count ? <span style={{ color: "var(--warn)" }}>Not responding: {s.last_error.slice(0, 120)}</span> : s.last_ok_at ? `OK ${relTime(s.last_ok_at)}${s.used_fallback ? " · via Google News (headlines only)" : ""} · ${s.last_count ?? 0} new last time` : "Not checked yet"}
-                  </span>
+                  <span className="tiny">{s.ok ? `${s.count} headlines${s.fallback ? " · via Google News" : ""}` : <span style={{ color: "var(--warn)" }}>Not responding{s.error ? `: ${s.error.slice(0, 120)}` : ""}</span>}</span>
                 </div>
-                <button className="icon-btn sm" onClick={() => setEditing(s)} aria-label={`Edit ${s.name} feeds`}><Pencil size={16} /></button>
-                <button className="switch" role="switch" aria-checked={s.enabled} aria-label={`${s.name} on or off`} onClick={() => toggleSource(s)} disabled={busy === `src-${s.key}`} />
+                {s.ok ? <CheckCircle2 size={18} color="var(--ok)" /> : <AlertTriangle size={18} color="var(--warn)" />}
               </div>
             ))}
           </div>
         )}
       </Section>
 
-      <Section icon={<Sparkles size={19} />} title="AI summaries" color="var(--accent)">
-        <p className="muted">Summaries use the free tier of Google Gemini, set up on your server. Google may use what is sent on the free tier to improve its products. Only the article text, or the typed text of a note when you tap "Summarise with AI", is sent. Handwriting and other notes are never sent. There is no paid fallback.</p>
-        <p className="tiny">Today: {ai && ai.ai_day ? ai.ai_count : 0} AI requests used (app limit 150 per day; Gemini's own free daily limit also applies).</p>
-      </Section>
-
       <Section icon={<DatabaseBackup size={19} />} title="Backup and restore" color="var(--more-1)">
-        <p className="tiny">The JSON backup restores everything: notes, folders, handwriting, AI summaries, tasks, saved news and dates. Images inside notes are kept as links; the image files are not inside the backup.</p>
+        <p className="tiny">The backup file contains everything: notes with their images and handwriting, folders, tasks, saved news and dates. Version history is not included.</p>
         <div className="row">
           <button className="btn primary" onClick={() => run("json", downloadJsonBackup, "Backup downloaded")} disabled={!!busy}>{busy === "json" ? <Loader2 size={17} className="spin" /> : <Download size={17} />}Download backup</button>
           <button className="btn line" onClick={() => run("md", downloadMarkdownZip, "Export downloaded")} disabled={!!busy}>{busy === "md" ? <Loader2 size={17} className="spin" /> : <FileArchive size={17} />}Export as Markdown (.zip)</button>
@@ -163,27 +141,21 @@ export function Settings() {
         {!usage ? <Skeleton /> : (
           <>
             <div className="stack" style={{ gap: 6 }}>
-              <div className="between"><b>Database</b><span className="tiny">{fmtBytes(dbBytes)} of about 500 MB (free plan)</span></div>
-              <div className="meter"><i style={{ width: `${Math.max(1, Math.min(100, (dbBytes / DB_LIMIT) * 100))}%` }} /></div>
-              <span className="tiny">Notes {fmtBytes(usage.notes_bytes)} ({usage.notes_count}) · Trash {fmtBytes(usage.trash_bytes)} ({usage.trash_count}) · History {fmtBytes(usage.versions_bytes)} · News {fmtBytes(usage.news_bytes)} ({usage.news_count})</span>
+              <div className="between"><b>Your data</b><span className="tiny">{fmtBytes(total)} of about 1 GB (Firebase free plan)</span></div>
+              <div className="meter"><i style={{ width: `${Math.max(1, Math.min(100, (total / DB_LIMIT) * 100))}%` }} /></div>
+              <span className="tiny">Notes {fmtBytes(usage.notes_bytes)} ({usage.notes_count}) · Trash {fmtBytes(usage.trash_bytes)} ({usage.trash_count}) · News and other {fmtBytes(usage.other_bytes)}</span>
             </div>
-            <div className="stack" style={{ gap: 6 }}>
-              <div className="between"><b>Images</b><span className="tiny">{fmtBytes(usage.files_bytes)} of 1 GB · {usage.files_count} files</span></div>
-              <div className="meter"><i style={{ width: `${Math.max(1, Math.min(100, (usage.files_bytes / FILE_LIMIT) * 100))}%` }} /></div>
-            </div>
-            <p className="tiny">Row sizes are estimates; the Supabase dashboard shows exact usage including indexes.</p>
+            <p className="tiny">An estimate from this device; the Firebase console shows exact usage.</p>
             <h3>Free up space</h3>
             <div className="row">
-              <button className="btn soft sm" disabled={!!busy} onClick={() => run("news", () => deleteOldNews(3), "Old news deleted")}>Delete unsaved news older than 3 days</button>
+              <button className="btn soft sm" disabled={!!busy} onClick={() => run("news", () => deleteOldNewsData(30), "Old news marks and pasted text deleted")}>Delete news data older than 30 days</button>
               <button className="btn soft sm" disabled={!!busy || !usage.trash_count} onClick={async () => { if (await confirm({ title: "Empty Trash?", body: `${usage.trash_count} notes will be permanently deleted.`, confirm: "Empty Trash", danger: true })) run("trash", emptyTrash, "Trash emptied"); }}>Empty Trash</button>
-              <button className="btn soft sm" disabled={!!busy} onClick={() => run("ver", deleteOldVersions, "History older than 30 days deleted")}>Delete history older than 30 days</button>
-              <button className="btn soft sm" disabled={!!busy || !usage.files_count} onClick={() => run("img", async () => { const n = await deleteUnusedImages(); toast(`${n} unused image${n === 1 ? "" : "s"} deleted`); })}>Delete unused images</button>
             </div>
             <div className="alert bad" style={{ marginTop: 6 }}>
               <AlertTriangle size={20} color="var(--bad)" />
               <div className="stack" style={{ gap: 8 }}>
                 <span>Delete all your data from this account.</span>
-                <button className="btn danger sm" style={{ alignSelf: "flex-start" }} disabled={!!busy} onClick={deleteEverything}>Delete everything…</button>
+                <button className="btn danger sm" style={{ alignSelf: "flex-start" }} disabled={!!busy} onClick={wipe}>Delete everything…</button>
               </div>
             </div>
           </>
@@ -193,39 +165,9 @@ export function Settings() {
       <Section icon={<User size={19} />} title="Account" color="var(--ink-2)">
         <div className="between">
           <span className="muted">{email}</span>
-          <button className="btn line" onClick={() => supabase.auth.signOut()}><LogOut size={17} />Sign out</button>
+          <button className="btn line" onClick={() => signOut()}><LogOut size={17} />Sign out</button>
         </div>
       </Section>
-
-      {editing && <FeedSheet source={editing} onClose={() => setEditing(null)} onSaved={refresh} />}
     </div>
-  );
-}
-
-function FeedSheet({ source, onClose, onSaved }: { source: Source; onClose: () => void; onSaved: () => void }) {
-  const [text, setText] = useState(source.feeds.join("\n"));
-  const toast = useToast();
-  const save = async () => {
-    const feeds = text.split(/\s+/).map((s) => s.trim()).filter(Boolean);
-    const bad = feeds.find((f) => !/^https?:\/\/[^\s]+\.[^\s]+/i.test(f));
-    if (bad) return toast(`Not a valid link: ${bad}`, { bad: true });
-    try {
-      await updateSource(source.key, { feeds });
-      onSaved();
-      onClose();
-      toast("Feeds saved. Tap Refresh on News to check them.");
-    } catch (e) {
-      toast(errMsg(e), { bad: true });
-    }
-  };
-  return (
-    <Sheet title={`${source.name} feeds`} onClose={onClose}>
-      <p className="tiny">One RSS feed link per line. Leave empty to use Google News headlines for {source.site}.</p>
-      <textarea className="textarea" value={text} onChange={(e) => setText(e.target.value)} style={{ minHeight: 160, fontFamily: "ui-monospace, monospace", fontSize: ".82rem" }} aria-label="Feed links" />
-      <div className="row" style={{ justifyContent: "flex-end" }}>
-        <button className="btn soft" onClick={onClose}>Cancel</button>
-        <button className="btn primary" onClick={save}>Save</button>
-      </div>
-    </Sheet>
   );
 }

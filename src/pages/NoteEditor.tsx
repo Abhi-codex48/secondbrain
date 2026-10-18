@@ -1,39 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Pin, PinOff, Trash2, History, Sparkles, PenLine, CloudOff, Check, Loader2, AlertTriangle, ExternalLink, X, RotateCcw } from "lucide-react";
-import { getNote, listFolders, listVersions, restoreNote, saveNote, summarise, trashNote, htmlToText } from "../lib/api";
-import { supabase } from "../lib/supabase";
+import { ArrowLeft, Pin, PinOff, Trash2, History, ListChecks, PenLine, CloudOff, Check, Loader2, AlertTriangle, ExternalLink, X, RotateCcw } from "lucide-react";
+import { getNote, listFolders, listVersions, restoreNote, saveNote, trashNote, htmlToText } from "../lib/api";
 import type { Folder, InkPage, Note, NoteVersion } from "../lib/types";
 import { fmtDate, fmtTime, istDay } from "../lib/date";
 import { back, go, type Route } from "../lib/router";
 import { RichEditor } from "../components/RichEditor";
 import { InkPageEditor, InkThumb, svgToPng } from "../components/Ink";
-import { SummaryView, summaryToHtml } from "../components/SummaryView";
+import { KeyPointsView } from "../components/KeyPointsView";
+import { keyPoints, keyPointsToHtml } from "../lib/keypoints";
 import { errMsg, Sheet, Skeleton, useConfirm, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 import { downloadBlob } from "../lib/backup";
 
 type SaveState = "idle" | "saving" | "saved" | "offline" | "error";
 type Draft = Partial<Note> & { id: string };
-
-const draftKey = (id: string) => `sb-draft-${id}`;
-const readDraft = (id: string): (Draft & { _at: number }) | null => {
-  try {
-    const s = localStorage.getItem(draftKey(id));
-    return s ? JSON.parse(s) : null;
-  } catch {
-    return null;
-  }
-};
-const writeDraft = (d: Draft) => {
-  try {
-    localStorage.setItem(draftKey(d.id), JSON.stringify({ ...d, _at: Date.now() }));
-  } catch { /* storage full or blocked: the cloud save still runs */ }
-};
-const clearDraft = (id: string) => {
-  try {
-    localStorage.removeItem(draftKey(id));
-  } catch { /* ignore */ }
-};
 
 export function NoteEditor({ id, route }: { id: string; route: Route }) {
   const isNew = id === "new";
@@ -47,20 +27,17 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [state, setState] = useState<SaveState>("idle");
   const [history, setHistory] = useState(false);
-  const [summing, setSumming] = useState(false);
-  const [localDraft, setLocalDraft] = useState<Draft | null>(null);
   const toast = useToast();
   const confirm = useConfirm();
   const pending = useRef<Draft | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
-  const base = useRef<string | null>(null); // server updated_at we started from
   const created = useRef(!isNew);
-  const warnedConflict = useRef(false);
+  const saveSeq = useRef(0);
 
   useEffect(() => {
     (async () => {
       try {
-        setFolders(await listFolders());
+        setFolders(await listFolders().catch(() => []));
         if (isNew) {
           const f = route.query.get("f");
           setNote({ id: noteId, kind: "note", title: "", body_html: "", ink: null, folder_id: f && f !== "none" ? f : null, read_on: istDay(), pinned: false });
@@ -68,69 +45,46 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
           return;
         }
         const n = await getNote(noteId);
-        base.current = n.updated_at;
         setNote(n);
         setTitle(n.title || "Untitled");
-        const d = readDraft(noteId);
-        if (d && d._at > Date.parse(n.updated_at)) setLocalDraft(d);
       } catch (e) {
-        const d = readDraft(noteId);
-        if (d) {
-          setNote(d);
-          setState("offline");
-          toast("Showing the copy saved on this device", { bad: true });
-        } else toast(errMsg(e), { bad: true });
+        toast(errMsg(e), { bad: true });
       }
     })();
   }, [isNew, noteId, route.query, toast]);
 
-  const flush = useCallback(async () => {
+  // Saving writes to this device at once (Firestore keeps it even offline) and syncs in the background.
+  const flush = useCallback(() => {
     const d = pending.current;
     if (!d) return;
-    if (!navigator.onLine) {
-      setState("offline");
-      return;
-    }
-    setState("saving");
+    pending.current = null;
+    clearTimeout(timer.current);
     try {
-      if (created.current && base.current && !warnedConflict.current) {
-        const { data } = await supabase.from("notes").select("updated_at").eq("id", d.id).maybeSingle();
-        if (data && Date.parse(data.updated_at) > Date.parse(base.current) + 1000) {
-          warnedConflict.current = true;
-          toast("This note was also changed on another device. That version is kept in History.");
-        }
-      }
-      const saved = await saveNote(d);
-      if (pending.current === d) pending.current = null;
-      base.current = saved.updated_at;
+      const { synced } = saveNote(d);
       if (!created.current) {
         created.current = true;
-        window.history.replaceState(null, "", `#/note/${saved.id}`);
+        window.history.replaceState(null, "", `#/note/${d.id}`);
       }
-      clearDraft(d.id);
-      setState(pending.current ? "saving" : "saved");
-      if (pending.current) timer.current = setTimeout(flush, 600);
+      const seq = ++saveSeq.current;
+      setState(navigator.onLine ? "saving" : "offline");
+      synced
+        .then(() => seq === saveSeq.current && !pending.current && setState("saved"))
+        .catch((e) => {
+          setState("error");
+          toast(`Couldn't save to the cloud: ${errMsg(e)}`, { bad: true });
+        });
     } catch (e) {
-      setState(navigator.onLine ? "error" : "offline");
-      if (navigator.onLine) toast(`Couldn't save: ${errMsg(e)}. Your text is kept on this device.`, { bad: true });
+      setState("error");
+      toast(errMsg(e), { bad: true });
     }
   }, [toast]);
 
   useEffect(() => {
-    const on = () => flush();
-    window.addEventListener("online", on);
-    const leave = (e: BeforeUnloadEvent) => {
-      if (pending.current) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", leave);
+    const off = () => setState((s) => (s === "saving" ? "offline" : s));
+    window.addEventListener("offline", off);
     return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("beforeunload", leave);
-      clearTimeout(timer.current);
-      if (pending.current) flush();
+      window.removeEventListener("offline", off);
+      flush();
     };
   }, [flush]);
 
@@ -140,12 +94,11 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
     const next = { ...n, ...patch };
     noteRef.current = next;
     setNoteState(next);
-    const hasContent = next.title || next.body_html || next.ink?.some((p) => p.strokes.length) || next.ai_summary;
+    const hasContent = next.title || next.body_html || next.ink?.some((p) => p.strokes.length) || next.key_points;
     if (!hasContent && !created.current) return; // don't create empty notes
     pending.current = next;
-    writeDraft(next);
     clearTimeout(timer.current);
-    timer.current = setTimeout(flush, 900);
+    timer.current = setTimeout(flush, 800);
     setState("saving");
   }, [flush]);
 
@@ -162,23 +115,16 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
     update({ ink: ink.length ? ink : null });
   };
 
-  const doSummary = async () => {
+  const doKeyPoints = () => {
     if (!note) return;
-    const text = `${note.title ?? ""}\n\n${htmlToText(note.body_html ?? "")}`.trim();
-    if (text.length < 80) return toast("Write a few sentences first; handwriting is not read by the AI", { bad: true });
-    setSumming(true);
-    try {
-      const r = await summarise({ text, title: note.title, length: "short", basedOn: "note" });
-      update({ ai_summary: r.summary });
-    } catch (e) {
-      toast(errMsg(e), { bad: true });
-    } finally {
-      setSumming(false);
-    }
+    const text = htmlToText(note.body_html ?? "");
+    const k = keyPoints(text, { title: note.title, basedOn: "note", detailed: text.length > 3000 });
+    if (!k) return toast("Write a few full sentences first; handwriting can't be read", { bad: true });
+    update({ key_points: k });
   };
 
   const remove = async () => {
-    await flush();
+    flush();
     if (!created.current) return back();
     await trashNote(noteId);
     toast("Moved to Trash", { undo: async () => { await restoreNote(noteId); go(`note/${noteId}`); } });
@@ -190,7 +136,7 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
   return (
     <div className="page" style={{ gap: 14 }}>
       <div className="row" style={{ flexWrap: "nowrap" }}>
-        <button className="btn soft sm" onClick={async () => { clearTimeout(timer.current); await flush(); back(); }}><ArrowLeft size={17} />Back</button>
+        <button className="btn soft sm" onClick={() => { flush(); back(); }}><ArrowLeft size={17} />Back</button>
         <SaveBadge s={state} />
         <span className="grow" />
         <button className="icon-btn" onClick={() => update({ pinned: !note.pinned })} aria-label={note.pinned ? "Unpin" : "Pin"} title={note.pinned ? "Unpin" : "Pin to top"}>
@@ -199,19 +145,6 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
         {created.current && <button className="icon-btn" onClick={() => setHistory(true)} aria-label="History" title="Version history"><History size={20} /></button>}
         <button className="icon-btn" onClick={remove} aria-label="Delete" title="Move to Trash"><Trash2 size={20} /></button>
       </div>
-
-      {localDraft && (
-        <div className="alert info">
-          <CloudOff size={20} />
-          <div className="stack" style={{ gap: 8 }}>
-            <p>This device has newer changes to this note that were not saved to the cloud.</p>
-            <div className="row">
-              <button className="btn primary sm" onClick={() => { const { _at, ...d } = localDraft as Draft & { _at?: number }; void _at; setNote(d); update(d); setLocalDraft(null); }}>Use this device's version</button>
-              <button className="btn soft sm" onClick={() => { clearDraft(noteId); setLocalDraft(null); }}>Keep the cloud version</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="editor-head">
         <input className="title-input" value={note.title ?? ""} onChange={(e) => update({ title: e.target.value })} placeholder="Title" aria-label="Title" />
@@ -249,25 +182,24 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
 
       <div className="row">
         <button className="btn grad" style={{ ["--c1" as string]: "var(--news-1)", ["--c2" as string]: "var(--news-2)" }} onClick={addInk}><PenLine size={17} />Write by hand</button>
-        <button className="btn grad" style={{ ["--c1" as string]: "var(--notes-1)", ["--c2" as string]: "var(--more-2)" }} onClick={doSummary} disabled={summing}>
-          {summing ? <Loader2 size={17} className="spin" /> : <Sparkles size={17} />}{note.ai_summary ? "New AI summary" : "Summarise with AI"}
+        <button className="btn grad" style={{ ["--c1" as string]: "var(--notes-1)", ["--c2" as string]: "var(--more-2)" }} onClick={doKeyPoints}>
+          <ListChecks size={17} />{note.key_points ? "Update key points" : "Pick key points"}
         </button>
       </div>
-      {summing && <p className="tiny">Your typed text in this note is being sent to the free AI service to summarise it.</p>}
 
-      {note.ai_summary && (
-        <SummaryView
-          s={note.ai_summary}
+      {note.key_points && (
+        <KeyPointsView
+          k={note.key_points}
           actions={
             <>
-              <button className="btn soft sm" onClick={() => update({ body_html: `${note.body_html ?? ""}${summaryToHtml(note.ai_summary!)}` })}>Copy into note</button>
-              <button className="icon-btn sm" onClick={() => update({ ai_summary: null })} aria-label="Remove AI summary" title="Remove AI summary"><X size={17} /></button>
+              <button className="btn soft sm" onClick={() => update({ body_html: `${note.body_html ?? ""}${keyPointsToHtml(note.key_points!)}` })}>Copy into note</button>
+              <button className="icon-btn sm" onClick={() => update({ key_points: null })} aria-label="Remove key points" title="Remove key points"><X size={17} /></button>
             </>
           }
         />
       )}
 
-      {history && <HistorySheet noteId={noteId} onClose={() => setHistory(false)} onRestore={(v) => { update({ title: v.title ?? "", body_html: v.body_html ?? "", ink: v.ink, ai_summary: v.ai_summary }); setHistory(false); toast("Earlier version restored. The replaced version is kept in History."); }} />}
+      {history && <HistorySheet noteId={noteId} onClose={() => setHistory(false)} onRestore={(v) => { update({ title: v.title ?? "", body_html: v.body_html ?? "", ink: v.ink, key_points: v.key_points }); setHistory(false); toast("Earlier version restored. The replaced version is kept in History."); }} />}
     </div>
   );
 }
@@ -288,8 +220,8 @@ function SaveBadge({ s }: { s: SaveState }) {
   if (s === "idle") return null;
   if (s === "saving") return <span className="savestate"><Loader2 size={14} className="spin" /><span>Saving…</span></span>;
   if (s === "saved") return <span className="savestate ok"><Check size={14} /><span>Saved to cloud</span></span>;
-  if (s === "offline") return <span className="savestate warn"><CloudOff size={14} /><span>Offline · kept on this device</span></span>;
-  return <span className="savestate bad"><AlertTriangle size={14} /><span>Not saved yet · kept on this device</span></span>;
+  if (s === "offline") return <span className="savestate warn"><CloudOff size={14} /><span>Offline · saved on this device, will sync</span></span>;
+  return <span className="savestate bad"><AlertTriangle size={14} /><span>Not synced · see message</span></span>;
 }
 
 function HistorySheet({ noteId, onClose, onRestore }: { noteId: string; onClose: () => void; onRestore: (v: NoteVersion) => void }) {
