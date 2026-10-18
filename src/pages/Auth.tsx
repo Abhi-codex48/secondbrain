@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { signInWithGoogle } from "../lib/firebase";
+import { saveLocalConfig, signInWithGoogle } from "../lib/firebase";
 import { errMsg } from "../components/ui";
 
 const GoogleIcon = () => (
@@ -47,12 +47,31 @@ export function Auth() {
 }
 
 export function NotConfigured() {
+  const [raw, setRaw] = useState("");
+  const [err, setErr] = useState("");
+  const save = () => {
+    try {
+      saveLocalConfig(raw);
+      window.location.reload();
+    } catch (e) {
+      setErr(errMsg(e));
+    }
+  };
   return (
     <div className="auth">
-      <div className="card">
+      <div className="card" style={{ width: "min(560px, 100%)" }}>
         <div className="brand" style={{ fontSize: "1.3rem" }}><img src="./icon.svg" alt="" style={{ width: 40, height: 40 }} /><span>Second Brain</span></div>
-        <h2>Almost ready</h2>
-        <p className="muted">This copy of the app isn't connected to Firebase yet. Add your Firebase web settings to <code>src/firebase-config.ts</code> (see the README).</p>
+        <h2>Connect your Firebase</h2>
+        <p className="muted">Your notes are stored in your own free Firebase project. Paste its web settings once on this device; they are saved only here, never in the public code.</p>
+        <ol className="muted" style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+          <li>Open <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">console.firebase.google.com</a> → your project → gear icon → <b>Project settings</b>.</li>
+          <li>Under <b>Your apps</b>, open the web app (or click <b>&lt;/&gt;</b> to add one).</li>
+          <li>Copy the whole <code>firebaseConfig</code> block and paste it below.</li>
+        </ol>
+        <textarea className="textarea" value={raw} onChange={(e) => setRaw(e.target.value)} placeholder={'const firebaseConfig = {\n  apiKey: "…",\n  authDomain: "…",\n  projectId: "…",\n  …\n};'} style={{ minHeight: 170, fontFamily: "ui-monospace, monospace", fontSize: ".82rem" }} aria-label="Firebase config" />
+        {err && <p style={{ color: "var(--bad)", fontWeight: 700 }}>{err}</p>}
+        <button className="btn primary block" onClick={save} disabled={!raw.trim()}>Connect</button>
+        <p className="tiny">No project yet? Follow the 5-minute steps in the README: create a project, turn on Google sign-in and Firestore, and add this site under Authentication → Settings → Authorized domains.</p>
       </div>
     </div>
   );

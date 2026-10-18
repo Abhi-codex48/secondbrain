@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Palette, Sun, Moon, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut } from "lucide-react";
 import { deleteEverything, deleteOldNewsData, emptyTrash, newsHealth, storageUsage } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
-import { auth, signOut } from "../lib/firebase";
+import { auth, clearLocalConfig, signOut } from "../lib/firebase";
 import { applyTheme, currentTheme, PALETTES, type Mode, type PaletteId } from "../lib/theme";
 import type { Source } from "../lib/types";
 import { relTime } from "../lib/date";
@@ -167,6 +167,7 @@ export function Settings() {
           <span className="muted">{email}</span>
           <button className="btn line" onClick={() => signOut()}><LogOut size={17} />Sign out</button>
         </div>
+        <button className="btn soft sm" style={{ alignSelf: "flex-start" }} onClick={async () => { if (await confirm({ title: "Disconnect this device?", body: "Signs out and removes the Firebase settings saved on this device. Your notes stay safe in Firebase.", confirm: "Disconnect" })) { await signOut(); clearLocalConfig(); window.location.reload(); } }}>Disconnect this device from Firebase</button>
       </Section>
     </div>
   );
