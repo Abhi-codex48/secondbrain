@@ -1,5 +1,5 @@
-// Fetches today's headlines from the newspapers' public RSS feeds, keeps the
-// relevant ones (public affairs, economy, science and similar) and writes news.json for the website. Runs every hour in
+// Fetches today's headlines from every section feed of the newspapers, files
+// each under the paper's own section, and writes news.json for the website. Runs every hour in
 // GitHub Actions: node --experimental-strip-types scripts/fetch-news.ts <out> [previousUrl]
 // Only headlines, links, dates and the feeds' own short descriptions are
 // published; article text is never copied.
@@ -7,12 +7,15 @@ import { writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { DEFAULT_SOURCES, googleNewsFeed } from "../shared/sources.ts";
 import { canonicalUrl, parseFeed, type FeedItem } from "../shared/rss.ts";
-import { classify } from "../shared/classify.ts";
+import { SECTIONS, TOP_STORIES, sectionFromUrl } from "../shared/sections.ts";
 
 const [out = "news.json", previousUrl] = process.argv.slice(2);
 const MAX_AGE_MS = 48 * 3600_000; // ignore feed items older than two days
-const KEEP_MS = 4 * 86400_000; // keep four days in the file
-const PER_SOURCE = 40;
+const KEEP_MS = 3 * 86400_000; // keep three days in the file
+const PER_SECTION = 15; // per paper and section, so no section crowds out the rest
+const PER_SOURCE = 160;
+// Advertising dressed as news (shopping deals, coupons) is left out; everything else is kept.
+const ADS = /\b(deals?|discounts?|coupons?|offers? on|price drop|lowest price|buy now|sale on)\b/i;
 const UA = "Mozilla/5.0 (compatible; SecondBrainNews/1.0; personal study reader)";
 
 export interface NewsItem {
@@ -41,7 +44,6 @@ async function get(url: string): Promise<string> {
 }
 
 const idOf = (url: string) => createHash("sha1").update(url).digest("hex").slice(0, 16);
-const alwaysKeep = (feed: string, key: string) => key === "pib" || /editorial|opinion|explained|\/lead\//i.test(feed);
 
 async function main() {
   const now = Date.now();
@@ -61,36 +63,45 @@ async function main() {
   await Promise.all(DEFAULT_SOURCES.map(async (src) => {
     const rows: NewsItem[] = [];
     const errors: string[] = [];
-    const collect = (items: FeedItem[], feed: string, viaGoogle: boolean) => {
+    const collect = (items: FeedItem[], section: string | null, viaGoogle: boolean) => {
+      const perSection = new Map<string, number>();
       for (const it of items) {
         if (it.publishedAt && now - Date.parse(it.publishedAt) > MAX_AGE_MS) continue;
         const title = viaGoogle ? it.title.replace(/\s+-\s+[^-]+$/, "") : it.title;
-        const c = classify(title, it.description, { alwaysKeep: alwaysKeep(feed, src.key) });
-        if (!c.keep) continue;
+        if (!title || ADS.test(title)) continue;
         const url = viaGoogle ? it.url : canonicalUrl(it.url);
-        const description = viaGoogle ? "" : it.description.slice(0, 400);
+        // The paper's own section: from the article's address, else from the feed.
+        const sec = (viaGoogle ? null : sectionFromUrl(url)) ?? section ?? TOP_STORIES;
+        const n = perSection.get(sec) ?? 0;
+        if (n >= PER_SECTION) continue;
+        perSection.set(sec, n + 1);
+        const description = viaGoogle ? "" : it.description.slice(0, 240);
         rows.push({
           id: idOf(url), url, title, description, source: src.key, sourceName: src.name,
-          publishedAt: it.publishedAt, fetchedAt, topics: c.topics.length ? c.topics : ["Editorial"],
+          publishedAt: it.publishedAt, fetchedAt, topics: [sec],
           level: description.length > 200 ? "excerpt" : "headline",
         });
       }
     };
-    const results = await Promise.allSettled(src.feeds.map(get));
+    const results = await Promise.allSettled(src.feeds.map((fd) => get(fd.url)));
     let ownOk = false;
+    const failed: string[] = [];
     results.forEach((r, i) => {
+      const fd = src.feeds[i];
       if (r.status === "fulfilled") {
         const items = parseFeed(r.value);
         if (items.length) ownOk = true;
-        collect(items, src.feeds[i], false);
-      } else errors.push(`${src.feeds[i]}: ${(r.reason as Error).message}`);
+        else failed.push(`${fd.section}: empty`);
+        collect(items, fd.section, false);
+      } else failed.push(`${fd.section}: ${(r.reason as Error).message}`);
     });
+    if (failed.length) errors.push(`Feeds not working: ${failed.join(", ")}`);
     let fallback = false;
     if (!ownOk) {
       fallback = true;
       try {
         const g = googleNewsFeed(src.site);
-        collect(parseFeed(await get(g)), g, true);
+        collect(parseFeed(await get(g)), null, true);
       } catch (e) {
         errors.push(`Google News fallback: ${(e as Error).message}`);
       }
@@ -99,13 +110,18 @@ async function main() {
       .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
       .slice(0, PER_SOURCE);
     fresh.push(...unique);
-    report.push({ key: src.key, name: src.name, ok: unique.length > 0, count: unique.length, fallback, error: errors.join(" · ").slice(0, 300) || undefined });
+    report.push({ key: src.key, name: src.name, ok: unique.length > 0, count: unique.length, fallback, error: errors.join(" · ").slice(0, 400) || undefined });
   }));
 
   // Keep the first time we saw each article, so "Today" stays stable across runs.
-  const seen = new Map(previous.filter((p) => now - Date.parse(p.fetchedAt) < KEEP_MS).map((p) => [p.id, p]));
+  // Older files used guessed topics; file those items under the paper's section too.
+  const known = new Set<string>([...SECTIONS, TOP_STORIES]);
+  const prev = previous
+    .filter((p) => now - Date.parse(p.fetchedAt) < KEEP_MS)
+    .map((p) => ({ ...p, topics: [sectionFromUrl(p.url) ?? (known.has(p.topics?.[0]) ? p.topics[0] : TOP_STORIES)] }));
+  const seen = new Map(prev.map((p) => [p.id, p]));
   for (const f of fresh) if (!seen.has(f.id)) seen.set(f.id, f);
-  const items = [...seen.values()].sort((a, b) => (b.publishedAt ?? b.fetchedAt).localeCompare(a.publishedAt ?? a.fetchedAt)).slice(0, 1200);
+  const items = [...seen.values()].sort((a, b) => (b.publishedAt ?? b.fetchedAt).localeCompare(a.publishedAt ?? a.fetchedAt)).slice(0, 3000);
 
   // Never publish an empty list: failing here stops the deploy, so the live site keeps its last news.
   if (items.length === 0) throw new Error("No headlines from any source and no previous list; keeping the live site as it is.");

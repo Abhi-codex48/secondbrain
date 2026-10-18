@@ -12,11 +12,12 @@
     <!-- Fonts load in the background so they never hold up the first screen. -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&family=Caveat:wght@600&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <script>
-      try { var m = localStorage.getItem("sb-mode"); if (m === "dark") document.documentElement.dataset.mode = "dark"; } catch (e) {}
+      try { var m = localStorage.getItem("sb-mode"); if (m === "dark" || m === "reading") document.documentElement.dataset.mode = m; } catch (e) {}
     </script>
     <style>
       .boot { position: fixed; inset: 0; display: grid; place-items: center; background: #fbfaff; font-family: system-ui, sans-serif; }
       [data-mode="dark"] .boot { background: #14111f; }
+      [data-mode="reading"] .boot { background: #f4ecd8; }
       .boot > div { display: grid; justify-items: center; gap: 18px; }
       .boot img { width: 64px; height: 64px; animation: boot-pop 1.4s cubic-bezier(.2,.8,.2,1) infinite; }
       .boot i { display: block; width: 120px; height: 4px; border-radius: 4px; background: rgba(124,77,255,.15); overflow: hidden; position: relative; }

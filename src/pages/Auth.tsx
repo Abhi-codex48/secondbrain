@@ -37,7 +37,7 @@ export function Auth() {
         <h1>Second Brain</h1>
         <p className="auth-lead">Your notes, handwriting and the day's news, in one private place.</p>
         <ul className="auth-points">
-          <li style={{ ["--c" as string]: "var(--news-2)" }}><span><Newspaper size={18} /></span>Today's headlines from 10 newspapers and PIB, with key points</li>
+          <li style={{ ["--c" as string]: "var(--news-2)" }}><span><Newspaper size={18} /></span>Every section of 14 newspapers and PIB, with key points</li>
           <li style={{ ["--c" as string]: "var(--notes-1)" }}><span><PenLine size={18} /></span>Write by hand, highlight and mark up any page</li>
           <li style={{ ["--c" as string]: "var(--more-1)" }}><span><Lock size={18} /></span>Private to your Google account and synced on all your devices</li>
         </ul>

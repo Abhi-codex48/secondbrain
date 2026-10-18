@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, FolderOpen, LayoutGrid, Newspaper } from "lucide-react";
+import { ArrowRight, FolderOpen, LayoutGrid, ListTodo, Newspaper, PenLine, Plus } from "lucide-react";
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
@@ -22,30 +22,32 @@ export function Home() {
         <h1>{greeting()}. <span className="wave">What are you reading today?</span></h1>
       </div>
 
+      <nav className="quick" aria-label="Quick actions">
+        <a href="#/note/new" style={{ ["--q" as string]: "var(--notes-1)" }}><Plus size={18} />New note</a>
+        <a href="#/draw/new/new" style={{ ["--q" as string]: "var(--news-1)" }}><PenLine size={18} />Write by hand</a>
+        <a href="#/more?t=todo" style={{ ["--q" as string]: "var(--more-1)" }}><ListTodo size={18} />To-do</a>
+      </nav>
+
       <div className="tiles">
         <a className="tile t-news" href="#/news">
-          {c && <span className="count">{c.news} today</span>}
           <span className="ic"><Newspaper size={26} /></span>
-          <h2>News</h2>
-          <p>Today's headlines from ten major newspapers and PIB, updated every hour. Bookmark what matters and keep notes on it.</p>
-          <span className="go">Open News <ArrowRight size={18} /></span>
+          <div className="head"><h2>News</h2>{c && <span className="count">{c.news} today</span>}</div>
+          <p>Every section of 14 newspapers and PIB, updated hourly. Read the full article and its key points.</p>
+          <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
         <a className="tile t-notes" href="#/notes">
-          {c && <span className="count">{c.notes} notes</span>}
           <span className="ic"><FolderOpen size={26} /></span>
-          <h2>Notes</h2>
-          <p>Your private space in folders. Type, highlight, or write and draw by hand like on paper. Search and filter everything.</p>
-          <span className="go">Open Notes <ArrowRight size={18} /></span>
+          <div className="head"><h2>Notes</h2>{c && <span className="count">{c.notes} notes</span>}</div>
+          <p>Your private folders. Type, highlight, or write by hand like on paper.</p>
+          <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
         <a className="tile t-more" href="#/more">
-          {c && <span className="count">{c.todos} to-do</span>}
           <span className="ic"><LayoutGrid size={26} /></span>
-          <h2>More</h2>
-          <p>To-do list, what you studied today, and everything you recorded on any date.</p>
-          <span className="go">Open More <ArrowRight size={18} /></span>
+          <div className="head"><h2>More</h2>{c && <span className="count">{c.todos} to-do</span>}</div>
+          <p>To-do list, what you studied today, and anything you recorded on any date.</p>
+          <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
       </div>
-
     </div>
   );
 }

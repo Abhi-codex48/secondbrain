@@ -6,7 +6,8 @@ export const PALETTES = [
   { id: "berry", name: "Berry", swatch: ["#d63ca5", "#7b3fe4", "#ff6a88"] },
 ] as const;
 export type PaletteId = (typeof PALETTES)[number]["id"];
-export type Mode = "light" | "dark";
+/** "reading" is a warm, low-contrast paper look that is easy on the eyes. */
+export type Mode = "light" | "dark" | "reading";
 
 const read = (k: string) => {
   try {
@@ -29,7 +30,7 @@ export function applyTheme(p?: PaletteId, m?: Mode) {
   document.documentElement.dataset.palette = palette;
   document.documentElement.dataset.mode = mode;
   const meta = document.querySelector('meta[name="theme-color"]');
-  meta?.setAttribute("content", mode === "dark" ? "#14111f" : "#fbfaff");
+  meta?.setAttribute("content", mode === "dark" ? "#14111f" : mode === "reading" ? "#f4ecd8" : "#fbfaff");
   write("sb-palette", palette);
   write("sb-mode", mode);
   return { palette, mode };

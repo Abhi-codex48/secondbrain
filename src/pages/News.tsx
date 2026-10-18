@@ -4,7 +4,7 @@ import { addLink, listNews, loadNewsFile, newsHealth, setNewsStatus } from "../l
 import type { NewsItem, Source } from "../lib/types";
 import { istDay, relTime } from "../lib/date";
 import { go } from "../lib/router";
-import { TOPICS } from "../../shared/classify";
+import { SECTIONS, TOP_STORIES } from "../../shared/sections";
 import { errMsg, Skeleton, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 
@@ -13,11 +13,11 @@ export const srcColor = (key: string) => SRC_COLORS[[...key].reduce((a, ch) => a
 export const LEVEL: Record<NewsItem["content_level"], string> = { full: "Full text", excerpt: "Excerpt", headline: "Headline only" };
 
 type View = "today" | "unread" | "saved" | "all";
-const OTHER = "Other news";
+const OTHER = TOP_STORIES;
 const PER_GROUP = 4;
 
 export function News() {
-  const [items, setItems] = useState<NewsItem[] | null>(null);
+  const [all, setAll] = useState<NewsItem[] | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [topic, setTopic] = useState("");
   const [src, setSrc] = useState("");
@@ -32,17 +32,24 @@ export function News() {
   const load = useCallback(async () => {
     try {
       const rows = await listNews({
-        topic: topic || undefined,
         source: src || undefined,
         status: view === "saved" ? "saved" : view === "unread" ? "unread" : undefined,
         day: view === "today" ? istDay() : undefined,
       });
-      setItems(rows);
+      setAll(rows);
     } catch (e) {
       toast(errMsg(e), { bad: true });
-      setItems([]);
+      setAll([]);
     }
-  }, [topic, src, view, toast]);
+  }, [src, view, toast]);
+  // Section filter is exact: a headline shows only under the section its paper filed it in.
+  const items = useMemo(() => (all && topic ? all.filter((n) => n.topics[0] === topic) : all), [all, topic]);
+  const setItems = (fn: (xs: NewsItem[] | null) => NewsItem[] | null) => setAll(fn);
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const n of all ?? []) m.set(n.topics[0] ?? TOP_STORIES, (m.get(n.topics[0] ?? TOP_STORIES) ?? 0) + 1);
+    return m;
+  }, [all]);
 
   // Headlines are fetched every hour by a scheduled job; Refresh loads the latest file.
   const sync = useCallback(async (force: boolean) => {
@@ -108,14 +115,14 @@ export function News() {
   };
 
   const failing = sources.filter((s) => !s.ok);
-  const topics = useMemo(() => ["", ...TOPICS, "Editorial"], []);
+  const topics = useMemo(() => ["", ...SECTIONS, TOP_STORIES], []);
   // Grouped by topic so a day's 300+ headlines read like a newspaper's sections.
   const groups = useMemo(() => {
     if (!items) return [];
     if (topic) return [{ name: topic, items }];
     const m = new Map<string, NewsItem[]>();
     for (const it of items) {
-      const k = it.topics[0] ?? OTHER;
+      const k = it.topics[0] && topics.includes(it.topics[0]) ? it.topics[0] : OTHER;
       m.set(k, [...(m.get(k) ?? []), it]);
     }
     const order = [...topics.slice(1), OTHER];
@@ -162,8 +169,10 @@ export function News() {
       </div>
 
       <div className="chips" aria-label="Topics">
-        {topics.map((t) => (
-          <button key={t || "all"} className={`chip ${topic === t ? "on" : ""}`} onClick={() => setTopic(t)}>{t || "All topics"}</button>
+        {topics.filter((t) => !t || counts.get(t) || topic === t).map((t) => (
+          <button key={t || "all"} className={`chip ${topic === t ? "on" : ""}`} onClick={() => setTopic(t)} aria-pressed={topic === t}>
+            {t || "All sections"}<span className="chip-n">{t ? counts.get(t) ?? 0 : all?.length ?? 0}</span>
+          </button>
         ))}
       </div>
       {sources.length > 0 && (
@@ -197,7 +206,7 @@ export function News() {
                     <h2>{g.name}</h2>
                     <span className="count">{g.items.length}</span>
                     <span className="grow" />
-                    {g.name !== OTHER && <button className="btn soft sm" onClick={() => setTopic(g.name)}>See all</button>}
+                    <button className="btn soft sm" onClick={() => { setTopic(g.name); window.scrollTo({ top: 0, behavior: "smooth" }); }}>See all</button>
                   </header>
                 )}
                 <ul>

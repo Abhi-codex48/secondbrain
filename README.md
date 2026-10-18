@@ -2,7 +2,7 @@
 
 A website for Android, iPhone, tablet and desktop. Anyone can sign in with Google and gets a private space that only they can read:
 
-- **News**: today's headlines from ten major newspapers plus PIB, collected automatically every hour. Opening a headline loads the **full article** (through free reader services) with its **key points** (no AI). Bookmark articles or save any link.
+- **News**: headlines from every section (India, World, Business, Opinion, Sports, Entertainment and more) of 14 newspapers plus PIB, collected every hour and filed under each paper's own section. Opening a headline loads the **full article** (through free reader services) with its **key points** (no AI). Bookmark articles or save any link.
 - **Notes**: your repository in folders. You get:
   - rich text: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images
   - handwriting with a pen or finger, and voice typing
@@ -57,8 +57,8 @@ To put it on your phone's home screen:
 ## Using it
 
 **News.**
-- The page opens with today's headlines, sorted into topics: Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health and Editorial.
-- **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Deccan Herald, The Tribune, The New Indian Express, and PIB. If a paper's own feed fails, its headlines come from a Google News search for that site. Settings shows which sources are working.
+- The page opens with today's headlines grouped by section; tap a section chip to see only that section.
+- **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Financial Express, Deccan Herald, The Tribune, The New Indian Express, The Telegraph, The Statesman, Down To Earth, and PIB. Sections come from the paper itself (the section in the article's address, or the section feed it came from), so the section filter is exact. If all of a paper's feeds fail, its headlines come from a Google News search for that site and are filed under Top stories. Settings shows which sources and feeds are working.
 - **To study an article:** tap it. The full text loads in a few seconds from your own browser through free reader services (Jina Reader and two public page fetchers, tried at the same time), with the key points, facts and figures, and the laws, bodies and schemes it mentions. Subscriber-only articles load only the part the site shows to everyone; for those, open the article and use **Paste article text**. The text stays private in your account.
 
 **Key points without AI.**
@@ -112,5 +112,4 @@ node --experimental-strip-types scripts/fetch-news.ts news.json   # try the news
 ## Known limits
 - Full text comes from free reader services. Subscriber-only articles, and papers that only publish through Google News (currently The Indian Express), can't be loaded; open the article and paste the text instead.
 - Scheduled GitHub runs can be delayed at busy times, and GitHub pauses them if the repository has no activity for 60 days. Any push, or **Run workflow** in the Actions tab, restarts them.
-- Topic tags come from keywords, so some articles may be tagged with the wrong topic.
 - Each note can hold about 1 MB, which is enough for long text, several images or many pages of handwriting.

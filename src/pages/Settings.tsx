@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Sun, Moon, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
+import { Palette, Sun, Moon, BookOpen, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { deleteEverything, deleteOldNewsData, emptyTrash, newsHealth, storageUsage } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
 import { auth, confirmIdentity, deleteAccount, signOut } from "../lib/firebase";
@@ -119,14 +119,15 @@ export function Settings() {
             </button>
           ))}
         </div>
-        <div className="seg" style={{ maxWidth: 320 }}>
+        <div className="seg" style={{ maxWidth: 420 }}>
           <button className={theme.mode === "light" ? "on" : ""} onClick={() => pickTheme(undefined, "light")}><Sun size={17} />Light</button>
+          <button className={theme.mode === "reading" ? "on" : ""} onClick={() => pickTheme(undefined, "reading")}><BookOpen size={17} />Reading</button>
           <button className={theme.mode === "dark" ? "on" : ""} onClick={() => pickTheme(undefined, "dark")}><Moon size={17} />Dark</button>
         </div>
       </Section>
 
       <Section icon={<Newspaper size={19} />} title="News sources" color="var(--news-2)">
-        <p className="tiny">Headlines are collected automatically every hour from the newspapers' public feeds. Sports, entertainment and shopping stories are left out. If a paper's own feed fails, its headlines come from Google News instead.</p>
+        <p className="tiny">Headlines are collected every hour from each paper's section feeds and filed under the paper's own section. If all of a paper's feeds fail, its headlines come from Google News and are filed under Top stories.</p>
         {health === null ? <Skeleton /> : health.sources.length === 0 ? <p className="muted">The first hourly news update hasn't run yet.</p> : (
           <div>
             <p className="tiny">Last update {relTime(health.generatedAt)}</p>

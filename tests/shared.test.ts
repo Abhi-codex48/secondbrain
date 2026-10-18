@@ -44,8 +44,22 @@ describe("feeds", () => {
     expect(canonicalUrl("https://www.Example.com/a/?utm_source=rss&id=2#top")).toBe("https://example.com/a/?id=2");
     expect(canonicalUrl("https://example.com/a/")).toBe("https://example.com/a");
   });
-  it("has ten newspapers plus PIB, each with a fallback site", () => {
-    expect(DEFAULT_SOURCES.filter((s) => s.key !== "pib")).toHaveLength(10);
+  it("has every paper plus PIB, each with a fallback site and unique key", () => {
+    expect(DEFAULT_SOURCES.filter((s) => s.key !== "pib").length).toBeGreaterThanOrEqual(10);
+    expect(new Set(DEFAULT_SOURCES.map((s) => s.key)).size).toBe(DEFAULT_SOURCES.length);
     for (const s of DEFAULT_SOURCES) expect(googleNewsFeed(s.site)).toContain(encodeURIComponent(`site:${s.site}`));
+  });
+});
+
+import { sectionFromUrl } from "../shared/sections";
+describe("sectionFromUrl", () => {
+  it("reads the paper's own section from the address", () => {
+    expect(sectionFromUrl("https://www.thehindu.com/sport/cricket/india-win/article1.ece")).toBe("Sports");
+    expect(sectionFromUrl("https://indianexpress.com/article/explained/why-x-9000/")).toBe("Explained");
+    expect(sectionFromUrl("https://www.hindustantimes.com/india-news/x-101.html")).toBe("India");
+    expect(sectionFromUrl("https://timesofindia.indiatimes.com/city/delhi/x/articleshow/1.cms")).toBe("Cities");
+    expect(sectionFromUrl("https://economictimes.indiatimes.com/news/economy/policy/x/articleshow/1.cms")).toBe("Business");
+    expect(sectionFromUrl("https://www.thehindu.com/opinion/editorial/x/article1.ece")).toBe("Opinion");
+    expect(sectionFromUrl("https://pib.gov.in/PressReleasePage.aspx?PRID=1")).toBeNull();
   });
 });

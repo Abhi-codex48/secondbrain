@@ -1,91 +1,101 @@
-// Default news sources. Feed URLs come from public directories and the
-// publishers' RSS pages; some could not be confirmed at build time, so every
-// source also has a Google News fallback (headlines only) that is used when
-// all of its own feeds fail. Users can edit feeds in Settings.
+// News sources: established national newspapers, the government's Press
+// Information Bureau and public broadcaster, and Down To Earth (environment).
+// Each paper lists its section feeds. Feed addresses follow each publisher's
+// own RSS pattern; any that stop working show up as failures in Settings, and
+// when all of a paper's feeds fail its headlines come from a Google News search
+// for that site instead (headlines only, filed under "Top stories").
+import type { Section } from "./sections.ts";
 
+export interface Feed { url: string; section: Section }
 export interface SourceDef {
   key: string;
   name: string;
-  feeds: string[];
+  feeds: Feed[];
   /** Site used for the Google News fallback query. */
   site: string;
 }
 
+const f = (section: Section, url: string): Feed => ({ url, section });
+const hindu = (section: Section, path: string) => f(section, `https://www.thehindu.com/${path}/feeder/default.rss`);
+const ie = (section: Section, path: string) => f(section, `https://indianexpress.com/section/${path}/feed/`);
+const ht = (section: Section, path: string) => f(section, `https://www.hindustantimes.com/feeds/rss/${path}/rssfeed.xml`);
+const toi = (section: Section, id: string) => f(section, `https://timesofindia.indiatimes.com/rssfeeds/${id}.cms`);
+const et = (section: Section, id: string) => f(section, `https://economictimes.indiatimes.com/rssfeeds/${id}.cms`);
+const mint = (section: Section, path: string) => f(section, `https://www.livemint.com/rss/${path}`);
+const bs = (section: Section, path: string) => f(section, `https://www.business-standard.com/rss/${path}.rss`);
+const fe = (section: Section, path: string) => f(section, `https://www.financialexpress.com/${path}/feed/`);
+
 export const DEFAULT_SOURCES: SourceDef[] = [
   {
-    key: "the-hindu",
-    name: "The Hindu",
-    site: "thehindu.com",
+    key: "the-hindu", name: "The Hindu", site: "thehindu.com",
     feeds: [
-      "https://www.thehindu.com/news/national/feeder/default.rss",
-      "https://www.thehindu.com/opinion/editorial/feeder/default.rss",
-      "https://www.thehindu.com/opinion/lead/feeder/default.rss",
-      "https://www.thehindu.com/business/Economy/feeder/default.rss",
-      "https://www.thehindu.com/sci-tech/feeder/default.rss",
-      "https://www.thehindu.com/news/international/feeder/default.rss",
+      hindu("India", "news/national"), hindu("World", "news/international"), hindu("Business", "business"),
+      hindu("Opinion", "opinion"), hindu("Science & Tech", "sci-tech"), hindu("Environment", "sci-tech/energy-and-environment"),
+      hindu("Health", "sci-tech/health"), hindu("Education", "education"), hindu("Sports", "sport"),
+      hindu("Entertainment", "entertainment"), hindu("Cities", "news/cities"), hindu("Lifestyle", "life-and-style"),
     ],
   },
   {
-    key: "indian-express",
-    name: "The Indian Express",
-    site: "indianexpress.com",
+    key: "indian-express", name: "The Indian Express", site: "indianexpress.com",
     feeds: [
-      "https://indianexpress.com/section/india/feed/",
-      "https://indianexpress.com/section/explained/feed/",
-      "https://indianexpress.com/section/opinion/editorials/feed/",
-      "https://indianexpress.com/section/business/economy/feed/",
+      ie("India", "india"), ie("World", "world"), ie("Business", "business"), ie("Opinion", "opinion"),
+      ie("Explained", "explained"), ie("Science & Tech", "technology"), ie("Education", "education"),
+      ie("Sports", "sports"), ie("Entertainment", "entertainment"), ie("Cities", "cities"), ie("Lifestyle", "lifestyle"),
     ],
   },
   {
-    key: "hindustan-times",
-    name: "Hindustan Times",
-    site: "hindustantimes.com",
+    key: "hindustan-times", name: "Hindustan Times", site: "hindustantimes.com",
     feeds: [
-      "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",
-      "https://www.hindustantimes.com/feeds/rss/editorials/rssfeed.xml",
+      ht("India", "india-news"), ht("World", "world-news"), ht("Business", "business"), ht("Opinion", "opinion"),
+      ht("Opinion", "editorials"), ht("Science & Tech", "science"), ht("Environment", "environment"),
+      ht("Education", "education"), ht("Sports", "sports"), ht("Entertainment", "entertainment"),
+      ht("Cities", "cities"), ht("Lifestyle", "lifestyle"),
     ],
   },
   {
-    key: "times-of-india",
-    name: "The Times of India",
-    site: "timesofindia.indiatimes.com",
+    key: "times-of-india", name: "The Times of India", site: "timesofindia.indiatimes.com",
     feeds: [
-      "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms",
-      "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+      toi("India", "-2128936835"), toi("World", "296589292"), toi("Business", "1898055"),
+      toi("Science & Tech", "66949542"), toi("Science & Tech", "-2128672765"), toi("Environment", "2647163"),
+      toi("Education", "913168846"), toi("Sports", "4719148"), toi("Entertainment", "1081479906"),
+      toi("Lifestyle", "2886704"),
     ],
   },
   {
-    key: "economic-times",
-    name: "The Economic Times",
-    site: "economictimes.indiatimes.com",
+    key: "economic-times", name: "The Economic Times", site: "economictimes.indiatimes.com",
     feeds: [
-      "https://economictimes.indiatimes.com/rssfeeds/1373380680.cms",
-      "https://economictimes.indiatimes.com/rssfeeds/1286551815.cms",
+      et("Business", "1373380680"), et("Business", "1977021501"), et("India", "1052732854"),
+      et("Science & Tech", "13357270"), et("Opinion", "897228639"), et("Business", "1286551815"),
     ],
   },
   {
-    key: "mint",
-    name: "Mint",
-    site: "livemint.com",
-    feeds: ["https://www.livemint.com/rss/economy", "https://www.livemint.com/rss/opinion"],
+    key: "mint", name: "Mint", site: "livemint.com",
+    feeds: [
+      mint("Business", "economy"), mint("Business", "markets"), mint("Business", "companies"), mint("Opinion", "opinion"),
+      mint("India", "politics"), mint("Science & Tech", "technology"), mint("Science & Tech", "science"),
+      mint("Education", "education"), mint("Sports", "sports"), mint("Lifestyle", "lifestyle"),
+    ],
   },
   {
-    key: "business-standard",
-    name: "Business Standard",
-    site: "business-standard.com",
-    feeds: [
-      "https://www.business-standard.com/rss/india-news-216.rss",
-      "https://www.business-standard.com/rss/latest.rss",
-    ],
+    key: "business-standard", name: "Business Standard", site: "business-standard.com",
+    feeds: [bs("India", "india-news-216"), bs("Business", "economy-102"), bs("Business", "markets-106"), bs("Business", "companies-101"), bs("Opinion", "opinion-105"), bs("Science & Tech", "technology-108")],
+  },
+  {
+    key: "financial-express", name: "Financial Express", site: "financialexpress.com",
+    feeds: [fe("Business", "economy"), fe("Business", "market"), fe("India", "india-news"), fe("Opinion", "opinion"), fe("Science & Tech", "life/technology")],
   },
   { key: "deccan-herald", name: "Deccan Herald", site: "deccanherald.com", feeds: [] },
   { key: "tribune", name: "The Tribune", site: "tribuneindia.com", feeds: [] },
   { key: "new-indian-express", name: "The New Indian Express", site: "newindianexpress.com", feeds: [] },
+  { key: "telegraph", name: "The Telegraph", site: "telegraphindia.com", feeds: [] },
+  { key: "statesman", name: "The Statesman", site: "thestatesman.com", feeds: [] },
   {
-    key: "pib",
-    name: "PIB (Govt. of India)",
-    site: "pib.gov.in",
-    feeds: ["https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3"],
+    key: "down-to-earth", name: "Down To Earth", site: "downtoearth.org.in",
+    feeds: [f("Environment", "https://www.downtoearth.org.in/rss/all")],
+  },
+  {
+    key: "pib", name: "PIB (Govt. of India)", site: "pib.gov.in",
+    feeds: [f("Government", "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3")],
   },
 ];
 
