@@ -24,7 +24,10 @@ describe("key points (no AI)", () => {
   it("returns only sentences that exist in the text", () => {
     const k = keyPoints(article, { title: "Cabinet approves urban flood mission" })!;
     for (const s of [k.lead, ...k.points, ...k.facts]) expect(article.replace(/\s+/g, " ")).toContain(s);
-    expect(k.points.length).toBe(4);
+    expect(k.points.length).toBe(3);
+    const d = keyPoints(article, { title: "Cabinet approves urban flood mission", detailed: true })!;
+    // Detailed gives clearly more than Short.
+    expect(d.points.length + d.facts.length + (d.summary?.length ?? 0)).toBeGreaterThan(k.points.length + k.facts.length + 2);
     expect(new Set([k.lead, ...k.points, ...k.facts]).size).toBe(1 + k.points.length + k.facts.length);
   });
 

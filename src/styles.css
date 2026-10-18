@@ -669,3 +669,4 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .kday a { color: var(--ink); text-decoration: none; }
 .ksub { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 800; color: color-mix(in srgb, var(--k, var(--accent)) 85%, var(--ink)); background: color-mix(in srgb, var(--k, var(--accent)) 13%, transparent); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .ksrc { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+.sum .condensed p { color: var(--ink); line-height: 1.65; margin-bottom: 10px; font-size: .95rem; }

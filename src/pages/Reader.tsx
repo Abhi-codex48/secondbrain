@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Copy, NotebookPen } from "lucide-react";
 import { cleanArticle, fetchFullText } from "../lib/fulltext";
 import { findNoteForNews, getNews, listFolders, savePastedText, saveNote, setNewsStatus } from "../lib/api";
 import type { Folder, NewsItem } from "../lib/types";
-import { keyPoints, keyPointsToHtml } from "../lib/keypoints";
+import { keyPoints, keyPointsToHtml, keyPointsToText } from "../lib/keypoints";
 import { fmtDate, fmtTime } from "../lib/date";
 import { back, go } from "../lib/router";
 import { RichEditor } from "../components/RichEditor";
@@ -35,8 +35,11 @@ export function Reader({ id }: { id: string }) {
     setLoading(true);
     setLoadErr("");
     try {
-      const text = await fetchFullText(it.url);
-      setItem(await savePastedText(it, text));
+      const { text, title } = await fetchFullText(it.url);
+      // A pasted link starts with only the site's name as its title; use the article's own.
+      const named = it.source_key === "link" && title && it.title === it.source_name ? { ...it, title } : it;
+      if (named !== it) setTitle(title);
+      setItem(await savePastedText(named, text));
       setShowText(true);
     } catch (e) {
       setLoadErr(errMsg(e));
@@ -84,6 +87,32 @@ export function Reader({ id }: { id: string }) {
     } catch (e) {
       toast(errMsg(e), { bad: true });
     }
+  };
+
+  const copyPoints = async () => {
+    if (!points || !item) return;
+    const text = keyPointsToText(points, item.title);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Key points copied");
+    } catch {
+      // Older browsers: copy through a hidden text box.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      toast(ok ? "Key points copied" : "Couldn't copy on this browser", { bad: !ok });
+    }
+  };
+  const addToNote = () => {
+    if (!points) return;
+    setMine((m) => `${m}${keyPointsToHtml(points)}`);
+    toast("Added to your note below");
+    setTimeout(() => document.querySelector(".layer.mine")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
   const save = async () => {
@@ -187,7 +216,10 @@ export function Reader({ id }: { id: string }) {
           {points && (
             <KeyPointsView
               k={points}
-              actions={<button className="btn soft sm" onClick={() => setMine((m) => `${m}${keyPointsToHtml(points)}`)} title="Copy the key points into your note">Copy to note</button>}
+              actions={<>
+                <button className="btn soft sm" onClick={copyPoints} title="Copy the key points as text"><Copy size={15} />Copy</button>
+                <button className="btn soft sm" onClick={addToNote} title="Add the key points to your note"><NotebookPen size={15} />Add to note</button>
+              </>}
             />
           )}
 

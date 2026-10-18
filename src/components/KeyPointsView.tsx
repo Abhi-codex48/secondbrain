@@ -32,6 +32,12 @@ export function KeyPointsView({ k, actions }: { k: KeyPoints; actions?: React.Re
       <p className="lead">{k.lead}</p>
       {sec("Key points", k.points, 0)}
       {sec("Facts and figures", k.facts, 1)}
+      {k.summary && k.summary.length > 0 && (
+        <section className="condensed">
+          <h4>Condensed article</h4>
+          {k.summary.map((x, n) => <p key={n}>{x}</p>)}
+        </section>
+      )}
       {chips("Laws, bodies and schemes mentioned", k.mentions, 2)}
       {chips("Key terms", k.terms, 3)}
       {chips("Topics", k.topics, 4)}

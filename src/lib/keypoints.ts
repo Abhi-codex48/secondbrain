@@ -7,6 +7,8 @@ import { classify } from "../../shared/classify";
 export interface KeyPoints {
   lead: string;
   points: string[];
+  /** Detailed only: the article's most important passages, in reading order. */
+  summary?: string[];
   facts: string[];
   terms: string[];
   mentions: string[];
@@ -93,30 +95,36 @@ export function keyPoints(text: string, opts: { title?: string; detailed?: boole
   if (sentences.length < 2) return null;
   const title = opts.title ?? "";
   const ranked = rank(sentences, title);
-  const n = opts.detailed ? 8 : 4;
+  // Short: the gist in 3 points and 2 figures. Detailed: up to 10 points, every
+  // figure worth keeping, and a condensed read-through of about a third of the article.
+  const n = opts.detailed ? Math.min(10, Math.max(6, Math.round(sentences.length / 5))) : 3;
   const lead = sentences.find((s) => s.length >= 60) ?? sentences[0];
   const leadIdx = sentences.indexOf(lead);
   const points = pick(ranked, n, new Set([leadIdx]));
   const used = new Set([leadIdx, ...points.map((p) => p.i)]);
-  const facts = pick(ranked.filter((r) => NUMERIC.test(r.s)), opts.detailed ? 6 : 4, used);
+  const facts = pick(ranked.filter((r) => NUMERIC.test(r.s)), opts.detailed ? 8 : 2, used);
+  const summary = opts.detailed && sentences.length > 8
+    ? pick(ranked, Math.min(16, Math.ceil(sentences.length * 0.35)), new Set([leadIdx])).map((p) => p.s)
+    : undefined;
 
   const mentions = topBy(
     [...text.matchAll(INSTITUTION)].map((m) => m[1].trim().replace(/^(?:of|for|and|on)\s/, "")).filter((m) => m.split(" ").length >= 2 && m.length <= 90)
       .concat([...text.matchAll(INSTITUTION_OF)].map((m) => m[1].trim().replace(/\s(?:and|&)$/, "")))
       .concat([...text.matchAll(ARTICLE)].map((m) => m[0])),
-    8,
+    opts.detailed ? 10 : 4,
   ).filter((m) => !/^(?:The|This|That|A|An)\s/.test(m));
   const mentionText = mentions.join(" ");
   const terms = topBy(
     [...text.matchAll(PHRASE)].map((m) => m[0]).filter((p) => !NOT_TERM.has(p.split(" ")[0]) || p.split(" ").length > 2)
       .concat([...text.matchAll(ACRONYM)].map((m) => m[0]).filter((a) => !NOT_TERM.has(a) && !/^\d+$/.test(a)))
       .filter((t) => !mentionText.includes(t)),
-    10,
+    opts.detailed ? 12 : 5,
     2,
   );
   return {
     lead,
     points: points.map((p) => p.s),
+    ...(summary ? { summary } : {}),
     facts: facts.map((f) => f.s),
     terms,
     mentions,
@@ -129,5 +137,11 @@ export function keyPoints(text: string, opts: { title?: string; detailed?: boole
 export function keyPointsToHtml(k: KeyPoints): string {
   const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const list = (h: string, xs: string[]) => (xs.length ? `<p><strong>${h}</strong></p><ul>${xs.map((x) => `<li><p>${esc(x)}</p></li>`).join("")}</ul>` : "");
-  return `<p><strong>Gist:</strong> ${esc(k.lead)}</p>${list("Key points", k.points)}${list("Facts and figures", k.facts)}`;
+  return `<p><strong>Gist:</strong> ${esc(k.lead)}</p>${list("Key points", k.points)}${list("Facts and figures", k.facts)}${k.summary ? `<p><strong>Condensed article</strong></p>${k.summary.map((x) => `<p>${esc(x)}</p>`).join("")}` : ""}${k.mentions.length ? `<p><strong>Mentioned:</strong> ${esc(k.mentions.join(", "))}</p>` : ""}`;
+}
+
+/** Plain text for copying to the clipboard or another app. */
+export function keyPointsToText(k: KeyPoints, title = ""): string {
+  const list = (h: string, xs: string[]) => (xs.length ? `\n${h}\n${xs.map((x) => `• ${x}`).join("\n")}\n` : "");
+  return [title, `Gist: ${k.lead}`, list("Key points", k.points), list("Facts and figures", k.facts), k.summary ? `\nCondensed article\n${k.summary.join("\n\n")}\n` : "", k.mentions.length ? `\nMentioned: ${k.mentions.join(", ")}` : ""].filter(Boolean).join("\n").trim();
 }

@@ -17,6 +17,16 @@ const section = (r: Route) => {
   return p;
 };
 
+/** Tapping the tab or logo of the page you're already on scrolls back to the top. */
+const toTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const target = e.currentTarget.getAttribute("href") ?? "";
+  const here = window.location.hash || "#/";
+  if (target === here || (target === "#/" && here === "#")) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
 export function Layout({ route, children }: { route: Route; children: ReactNode }) {
   const [pen, setPen] = useState(false);
   const [q, setQ] = useState("");
@@ -27,13 +37,13 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
     <div className="shell">
       <header className="topbar">
         <div className="topbar-in">
-          <a className="brand" href="#/" style={{ textDecoration: "none", color: "inherit" }}>
+          <a className="brand" href="#/" onClick={toTop} style={{ textDecoration: "none", color: "inherit" }}>
             <img src="./icon.svg" alt="" />
             <span>Second Brain</span>
           </a>
           <nav className="topnav" aria-label="Main">
             {NAV.map((n) => (
-              <a key={n.id} href={`#/${n.id}`} className={cur === n.id ? "on" : ""}>{n.label}</a>
+              <a key={n.id} href={`#/${n.id}`} onClick={toTop} className={cur === n.id ? "on" : ""}>{n.label}</a>
             ))}
           </nav>
           <form
@@ -72,7 +82,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
 
       <nav className="bottomnav" aria-label="Main">
         {NAV.map((n) => (
-          <a key={n.id} href={`#/${n.id}`} className={cur === n.id ? "on" : ""} style={{ ["--c1" as string]: n.c1, ["--soft" as string]: n.soft }}>
+          <a key={n.id} href={`#/${n.id}`} onClick={toTop} className={cur === n.id ? "on" : ""} style={{ ["--c1" as string]: n.c1, ["--soft" as string]: n.soft }}>
             <n.icon size={22} />
             {n.label}
           </a>

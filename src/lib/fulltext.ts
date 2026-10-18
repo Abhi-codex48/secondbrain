@@ -49,7 +49,7 @@ export function markdownToText(md: string): string {
 }
 
 /** Picks the article out of a whole web page (menus, ads and footers removed). */
-async function readable(html: string, url: string): Promise<string> {
+async function readable(html: string, url: string): Promise<{ text: string; title: string }> {
   const { Readability } = await import("@mozilla/readability");
   const d = new DOMParser().parseFromString(html, "text/html");
   const base = d.createElement("base");
@@ -58,7 +58,7 @@ async function readable(html: string, url: string): Promise<string> {
   const art = new Readability(d).parse();
   const body = new DOMParser().parseFromString(art?.content ?? "", "text/html");
   const text = [...body.querySelectorAll("p, li, h2, h3, blockquote")].map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim()).filter((l) => l.split(" ").length >= 8 && isArticleLine(l));
-  return [...new Set(text)].join("\n\n");
+  return { text: [...new Set(text)].join("\n\n"), title: (art?.title ?? "").trim() };
 }
 
 async function get(u: string, signal: AbortSignal): Promise<string> {
@@ -70,20 +70,23 @@ async function get(u: string, signal: AbortSignal): Promise<string> {
 
 // Three free routes are tried at the same time and the first good answer wins,
 // so one slow or blocked service doesn't hold the article up.
-const ROUTES: ((url: string, s: AbortSignal) => Promise<string>)[] = [
-  async (url, s) => markdownToText(await get(READER + url, s)),
+const ROUTES: ((url: string, s: AbortSignal) => Promise<{ text: string; title: string }>)[] = [
+  async (url, s) => {
+    const md = await get(READER + url, s);
+    return { text: markdownToText(md), title: md.match(/^Title:\s*(.+)$/m)?.[1].trim() ?? "" };
+  },
   async (url, s) => readable(await get(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, s), url),
   async (url, s) => readable(await get(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`, s), url),
 ];
 
-export async function fetchFullText(url: string): Promise<string> {
+export async function fetchFullText(url: string): Promise<{ text: string; title: string }> {
   if (/news\.google\.com\//.test(url)) throw new Error("This paper only shares its headlines through Google News, so the text can't be loaded here.");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20_000);
   try {
     const text = await Promise.any(ROUTES.map(async (r) => {
       const t = await r(url, ctl.signal);
-      if (t.length < 400) throw new Error("short");
+      if (t.text.length < 400) throw new Error("short");
       return t;
     }));
     return text;

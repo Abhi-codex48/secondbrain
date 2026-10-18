@@ -373,7 +373,8 @@ export async function addLink(url: string, title: string): Promise<string> {
   const id = `link-${(await sha1(url)).slice(0, 14)}`;
   const host = new URL(url).hostname.replace(/^www\./, "");
   const item = { id, url, title: title || host, description: "", source: "link", sourceName: host, publishedAt: null, fetchedAt: now(), topics: [], level: "headline" as const };
-  await setDoc(doc(col("articles"), id), { text: "", item, saved_at: now() }, { merge: true });
+  // Saved on this device at once (synced in the background), so the article opens straight away.
+  void setDoc(doc(col("articles"), id), { text: "", item, saved_at: now() }, { merge: true }).catch(() => {});
   return id;
 }
 async function sha1(s: string) {
