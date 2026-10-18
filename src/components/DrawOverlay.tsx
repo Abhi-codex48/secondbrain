@@ -25,7 +25,9 @@ async function capture(top: number, height: number): Promise<{ src: string; w: n
         pixelRatio: ratio,
         skipFonts: true,
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
-        style: { transform: `translate(0px, ${-top}px)`, transformOrigin: "top left" },
+        // The page normally clips to the screen (overflow hidden, 100% height), which made
+        // a scrolled-to region come out blank; show the whole page and shift it into frame.
+        style: { transform: `translate(0px, ${-top}px)`, transformOrigin: "top left", height: `${document.documentElement.scrollHeight}px`, overflow: "visible" },
         filter: (n) => !(n instanceof HTMLElement && SKIP.some((c) => n.classList.contains(c))),
       });
       for (const q of [0.8, 0.65, 0.5]) {
@@ -145,8 +147,8 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
     if (!b) return toast("Draw something first");
     setSaving(true);
     try {
-      const top = Math.max(0, Math.floor(b.y - 40));
-      const height = Math.min(Math.ceil(b.y + b.h + 40) - top, size.h - top, 5000);
+      const top = Math.max(0, Math.floor(b.y - 120));
+      const height = Math.min(Math.ceil(b.y + b.h + 120) - top, size.h - top, 5000);
       const shot = await capture(top, height);
       const vw = shot?.w ?? document.documentElement.clientWidth;
       const s = W / vw;
