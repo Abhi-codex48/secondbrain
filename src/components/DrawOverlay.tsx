@@ -18,7 +18,7 @@ async function captureScreen(): Promise<string | null> {
       skipFonts: true,
       backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
       style: { transform: `translate(${-window.scrollX}px, ${-window.scrollY}px)`, transformOrigin: "top left" },
-      filter: (n) => !(n instanceof HTMLElement && (n.classList.contains("fab-stack") || n.classList.contains("toasts"))),
+      filter: (n) => !(n instanceof HTMLElement && (["fab-stack", "toasts", "studio", "pen-loading"].some((c) => n.classList.contains(c)))),
     });
     for (const q of [0.8, 0.65, 0.5, 0.35]) {
       const url = canvas.toDataURL("image/jpeg", q);

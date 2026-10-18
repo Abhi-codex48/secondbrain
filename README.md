@@ -2,7 +2,7 @@
 
 A website for Android, iPhone, tablet and desktop. Anyone can sign in with Google and gets a private space that only they can read:
 
-- **News**: today's headlines from ten major newspapers plus PIB, collected automatically every hour. Bookmark articles, paste an article's text to get its **key points** (no AI), or save any link.
+- **News**: today's headlines from ten major newspapers plus PIB, collected automatically every hour. Opening a headline loads the **full article** (through the free Jina Reader service) with its **key points** (no AI). Bookmark articles or save any link.
 - **Notes**: your repository in folders. You get:
   - rich text: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images
   - handwriting with a pen or finger, and voice typing
@@ -59,7 +59,7 @@ To put it on your phone's home screen:
 **News.**
 - The page opens with today's headlines, sorted into topics: Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health and Editorial.
 - **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Deccan Herald, The Tribune, The New Indian Express, and PIB. If a paper's own feed fails, its headlines come from a Google News search for that site. Settings shows which sources are working.
-- **To study an article:** tap it, then **Open article** to read it on the newspaper's site. Copy the text and **Paste article text**. You get the gist, key points, facts and figures, and the laws, bodies and schemes it mentions. Add your own note and **Save to notes**. Pasted text stays private in your account.
+- **To study an article:** tap it. The full text loads in a few seconds from your own browser through [Jina Reader](https://jina.ai/reader/) (free, about 20 articles a minute per device without a key), with the key points, facts and figures, and the laws, bodies and schemes it mentions. Subscriber-only articles load only the part the site shows to everyone; for those, open the article and use **Paste article text**. The text stays private in your account.
 
 **Key points without AI.**
 - The app scores every sentence by how many of the article's important words it contains, where it sits in the article, and whether it shares words with the headline. It then shows the best ones in their original order.
@@ -109,7 +109,7 @@ node --experimental-strip-types scripts/fetch-news.ts news.json   # try the news
 - `firestore.rules`: security rules.
 
 ## Known limits
-- News articles must be opened on the newspaper's site; the app can't fetch their text by itself without a paid server.
+- Full text comes from Jina Reader; if that service is down or an article is for subscribers only, paste the text instead.
 - Scheduled GitHub runs can be delayed at busy times, and GitHub pauses them if the repository has no activity for 60 days. Any push, or **Run workflow** in the Actions tab, restarts them.
 - Topic tags come from keywords, so some articles may be tagged with the wrong topic.
 - Each note can hold about 1 MB, which is enough for long text, several images or many pages of handwriting.

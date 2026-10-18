@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { fetchFullText } from "../lib/fulltext";
 import { findNoteForNews, getNews, listFolders, savePastedText, saveNote, setNewsStatus } from "../lib/api";
 import type { Folder, NewsItem } from "../lib/types";
 import { keyPoints, keyPointsToHtml } from "../lib/keypoints";
@@ -25,8 +26,24 @@ export function Reader({ id }: { id: string }) {
   const [mine, setMine] = useState("");
   const [saved, setSaved] = useState<{ id: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadErr, setLoadErr] = useState("");
   const toast = useToast();
   const started = useRef(false);
+
+  const loadFull = async (it: NewsItem) => {
+    setLoading(true);
+    setLoadErr("");
+    try {
+      const text = await fetchFullText(it.url);
+      setItem(await savePastedText(it, text));
+      setShowText(true);
+    } catch (e) {
+      setLoadErr(errMsg(e));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (started.current) return;
@@ -41,6 +58,7 @@ export function Reader({ id }: { id: string }) {
         const guess = fs.find((f) => it.topics.some((t) => f.name.toLowerCase().includes(t.toLowerCase().split(" ")[0])));
         setFolderId(guess?.id ?? "");
         if (it.status === "new") setNewsStatus(it.id, "read").catch(() => {});
+        if (!it.article_text && /^https?:/.test(it.url)) loadFull(it);
       } catch (e) {
         toast(errMsg(e), { bad: true });
       }
@@ -116,15 +134,24 @@ export function Reader({ id }: { id: string }) {
 
       <div className="reader">
         <div className="stack">
-          {noText && !pasting && (
+          {noText && loading && (
+            <div className="alert info">
+              <Loader2 size={20} className="spin" color="var(--accent)" />
+              <div><b>Loading the full article…</b><p className="muted">This takes a few seconds.</p></div>
+            </div>
+          )}
+
+          {noText && !loading && !pasting && (
             <div className="alert info">
               <ExternalLink size={20} color="var(--accent)" />
               <div className="stack" style={{ gap: 10 }}>
                 <div>
-                  <b>Read it on the newspaper's site</b>
-                  <p className="muted">Open the article, then copy its text and paste it here. You'll get the key points, facts and figures, and the laws and bodies it mentions, picked straight from the article.</p>
+                  <b>{loadErr ? "Couldn't load the full article" : "Read it on the newspaper's site"}</b>
+                  {loadErr && <p className="muted">{loadErr}</p>}
+                  <p className="muted">You can open the article, copy its text and paste it here to get the key points, facts and figures, and the laws and bodies it mentions.</p>
                 </div>
                 <div className="row">
+                  {loadErr && <button className="btn soft sm" onClick={() => loadFull(item)}><RefreshCw size={16} />Try again</button>}
                   <a className="btn primary sm" href={item.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Open article</a>
                   <button className="btn soft sm" onClick={() => setPasting(true)}><ClipboardPaste size={16} />Paste article text</button>
                 </div>
@@ -165,7 +192,7 @@ export function Reader({ id }: { id: string }) {
           {item.article_text && (
             <div className="layer src">
               <button className="between" style={{ width: "100%", minHeight: 44 }} onClick={() => setShowText((v) => !v)} aria-expanded={showText}>
-                <span className="row"><FileText size={18} /><b>Article text</b><span className="tiny">{Math.round(item.article_text.length / 5.5 / 200) || 1} min read</span></span>
+                <span className="row"><FileText size={18} /><b>Full article</b><span className="tiny">{Math.round(item.article_text.length / 5.5 / 200) || 1} min read</span></span>
                 {showText ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
               {showText && <div className="article-text">{item.article_text}</div>}
