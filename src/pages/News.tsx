@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Search } from "lucide-react";
-import { addLink, archiveDays, listNews, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
+import { addLink, archiveDays, listNews, onNewsUpdate, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
 import type { NewsItem, Source } from "../lib/types";
 import { fmtDate, istDay, relTime } from "../lib/date";
 import { go } from "../lib/router";
@@ -81,6 +81,11 @@ export function News() {
     sync(false);
   }, [sync]);
 
+  // Fresher headlines (or read marks) arrived in the background: update quietly.
+  useEffect(() => onNewsUpdate(() => {
+    load();
+    newsHealth().then((h) => { setSynced(h.generatedAt); setSources(h.sources); }).catch(() => {});
+  }), [load]);
   // Keep the current list on screen while a filter applies, so nothing jumps.
   useEffect(() => {
     load();

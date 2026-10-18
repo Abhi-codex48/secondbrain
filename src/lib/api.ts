@@ -273,22 +273,55 @@ let newsFile: NewsFile | null = null;
 let newsLoadedAt = 0;
 let states: Map<string, NewsState> | null = null;
 
+// News opens instantly from the copy saved on this device, while the latest
+// file is checked in the background (a quick "not changed" reply when nothing is new).
+const newsListeners = new Set<() => void>();
+/** Called when fresher headlines arrive after the page has already shown the saved ones. */
+export const onNewsUpdate = (cb: () => void) => { newsListeners.add(cb); return () => { newsListeners.delete(cb); }; };
+let newsFetch: Promise<NewsFile> | null = null;
+
+function fetchNewsFile(): Promise<NewsFile> {
+  newsFetch ??= (async () => {
+    try {
+      const res = await fetch("./news.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error(String(res.status));
+      const text = await res.text();
+      const fresh = JSON.parse(text) as NewsFile;
+      const changed = !newsFile || fresh.generatedAt !== newsFile.generatedAt;
+      newsFile = fresh;
+      newsLoadedAt = Date.now();
+      if (changed) {
+        try { localStorage.setItem("sb-news", text); } catch { /* storage full: fine */ }
+        newsListeners.forEach((cb) => cb());
+      }
+      return fresh;
+    } finally {
+      newsFetch = null;
+    }
+  })();
+  return newsFetch;
+}
+
 export async function loadNewsFile(force = false): Promise<NewsFile> {
-  if (newsFile && !force && Date.now() - newsLoadedAt < 10 * 60_000) return newsFile;
-  try {
-    const res = await fetch(`./news.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(String(res.status));
-    const text = await res.text();
-    newsFile = JSON.parse(text);
-    try { localStorage.setItem("sb-news", text); } catch { /* storage full: fine */ }
-  } catch {
-    // Offline or the site is unreachable: show the last news list this device saw.
-    const saved = (() => { try { return localStorage.getItem("sb-news"); } catch { return null; } })();
-    if (!saved) throw new Error("News couldn't be loaded. Check your connection; headlines update every hour.");
-    newsFile = JSON.parse(saved);
+  if (force) return fetchNewsFile();
+  if (newsFile) {
+    if (Date.now() - newsLoadedAt > 10 * 60_000) fetchNewsFile().catch(() => {});
+    return newsFile;
   }
-  newsLoadedAt = Date.now();
-  return newsFile!;
+  const saved = (() => { try { return localStorage.getItem("sb-news"); } catch { return null; } })();
+  if (saved) {
+    try {
+      newsFile = JSON.parse(saved);
+      newsLoadedAt = 0; // shown from the device; refresh straight away
+      fetchNewsFile().catch(() => {});
+      return newsFile!;
+    } catch { /* damaged copy: fetch below */ }
+  }
+  try {
+    return await fetchNewsFile();
+  } catch {
+    throw new Error("News couldn't be loaded. Check your connection; headlines update every hour.");
+  }
 }
 
 // ---------- news archive (one file per day, last 90 days) ----------
@@ -312,10 +345,25 @@ export async function archiveDays(): Promise<{ day: string; count: number }[]> {
   }
 }
 
+// Read/saved marks come from this device's copy first (instant), then the server.
+let statesFromServer = false;
 async function loadStates() {
   if (!states) {
-    const s = await getDocs(col("newsState"));
-    states = new Map(s.docs.map((d) => [d.id, d.data() as NewsState]));
+    const cached = await getDocsFromCache(col("newsState")).catch(() => null);
+    if (cached && !cached.empty) {
+      states = new Map(cached.docs.map((d) => [d.id, d.data() as NewsState]));
+    } else {
+      const s = await getDocs(col("newsState"));
+      states = new Map(s.docs.map((d) => [d.id, d.data() as NewsState]));
+      statesFromServer = true;
+    }
+  }
+  if (!statesFromServer) {
+    statesFromServer = true;
+    getDocs(col("newsState")).then((s) => {
+      for (const d of s.docs) states!.set(d.id, d.data() as NewsState);
+      newsListeners.forEach((cb) => cb());
+    }).catch(() => { statesFromServer = false; });
   }
   return states;
 }
@@ -383,7 +431,7 @@ async function sha1(s: string) {
 }
 
 export async function newsHealth() {
-  const f = await loadNewsFile(true).catch(() => null);
+  const f = await loadNewsFile().catch(() => null);
   return { generatedAt: f?.generatedAt ?? null, sources: f?.sources ?? [] };
 }
 

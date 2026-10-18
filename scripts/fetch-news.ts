@@ -11,7 +11,7 @@ import { SECTIONS, TOP_STORIES, sectionFromUrl } from "../shared/sections.ts";
 
 const [out = "news.json", previousUrl] = process.argv.slice(2);
 const MAX_AGE_MS = 48 * 3600_000; // ignore feed items older than two days
-const KEEP_MS = 3 * 86400_000; // keep three days in the file
+const KEEP_MS = 2 * 86400_000; // two days in the main file; older days are in the archive
 const PER_SECTION = 25; // per paper and section, so no section crowds out the rest
 const PER_FALLBACK = 60; // papers read through Google News, and single-feed sources like PIB
 const PER_SOURCE = 160;
@@ -124,7 +124,11 @@ async function main() {
     .map((p) => ({ ...p, topics: [sectionFromUrl(p.url) ?? (known.has(p.topics?.[0]) ? p.topics[0] : TOP_STORIES)] }));
   const seen = new Map(prev.map((p) => [p.id, p]));
   for (const f of fresh) if (!seen.has(f.id)) seen.set(f.id, f);
-  const items = [...seen.values()].sort((a, b) => (b.publishedAt ?? b.fetchedAt).localeCompare(a.publishedAt ?? a.fetchedAt)).slice(0, 3000);
+  // Keep the file small so it opens fast on phones: descriptions only for the last day.
+  const items = [...seen.values()]
+    .sort((a, b) => (b.publishedAt ?? b.fetchedAt).localeCompare(a.publishedAt ?? a.fetchedAt))
+    .slice(0, 2500)
+    .map((i) => (now - Date.parse(i.fetchedAt) > 86400_000 && i.description ? { ...i, description: "", level: "headline" as const } : i));
 
   // Never publish an empty list: failing here stops the deploy, so the live site keeps its last news.
   if (items.length === 0) throw new Error("No headlines from any source and no previous list; keeping the live site as it is.");
