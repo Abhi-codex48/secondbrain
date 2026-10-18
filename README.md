@@ -67,12 +67,20 @@ To put it on your phone's home screen:
 - Names ending in Act, Ministry, Commission, Scheme, Court and similar, plus Article and Section numbers, are listed as "mentioned".
 - It quotes the article exactly, so it can't invent anything. It also can't explain or simplify.
 
-**Handwriting.**
-- Tap **Write by hand** in any note.
-- Tools: a pressure-sensitive pen with a stylus, a highlighter, an eraser that removes whole strokes, colours, sizes, and undo/redo.
-- Paper: lined, grid or plain.
-- **Stylus-only mode** turns on the first time a stylus is used, so your palm doesn't draw and a finger scrolls the page.
-- Each page can be saved as a PNG image.
+**Handwriting and drawing (full-screen studio).**
+- Tap **Write by hand**, or **Open** on a handwriting page in a note.
+- **Pens:** ballpoint, fountain pen with stroke width that follows pressure, and pencil with a grainy line. Also a highlighter.
+- **Erasers:** tap the eraser again to switch between *erase part* and *whole stroke*.
+- **Thickness and colour:** a thickness slider and a colour palette with a custom colour picker.
+- **Hold to straighten:** draw a line, box, circle or triangle and keep the pen still at the end. It snaps to a clean shape, which you can keep dragging to adjust.
+- **Shapes** (from **+**): line, arrow, rectangle, circle, triangle and table. Lines snap to horizontal, vertical and 45°.
+- **Text** (T): tap anywhere and type a label, in small, medium or large.
+- **Lasso:** draw a loop around anything to move it, resize it from the corner handle, recolour, duplicate or delete it.
+- **+ menu:** insert an image, add more space, choose paper (lined, grid, dots or plain), turn on stylus-only mode, or clear the page.
+- **Stylus-only mode** turns on the first time a stylus touches the page, so your palm doesn't draw and a finger scrolls.
+- **Saving:** autosaves as you draw. **Save** returns to the note, and **Share** sends the page as a PNG image.
+
+**Pen mode** (the orange pen button on any screen) freezes what's on screen and opens the same studio on top of it. **Save** keeps the picture, your marks and the page's text together in a private note.
 
 **Voice typing** is the microphone button in the editor. It works in Chrome, Edge and most versions of Safari, but not Firefox. Your keyboard's own mic key works everywhere.
 

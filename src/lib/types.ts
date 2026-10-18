@@ -9,20 +9,9 @@ export interface Folder {
   created_at: string;
 }
 
-export interface Stroke {
-  /** [x, y, pressure] in a 1000-unit-wide coordinate space */
-  points: [number, number, number][];
-  color: string;
-  size: number;
-  tool: "pen" | "highlighter";
-}
-
-export interface InkPage {
-  id?: string;
-  height: number;
-  strokes: Stroke[];
-}
-
+import type { Page } from "./ink";
+/** A handwriting page: strokes, shapes, text and images. */
+export type InkPage = Page;
 
 export interface Note {
   id: string;

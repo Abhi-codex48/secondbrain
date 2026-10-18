@@ -427,3 +427,59 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 @media print { .topbar, .bottomnav, .fab-stack, .toolbar, .toasts { display: none !important; } .main { padding: 0; } }
 .only-m { display: grid; }
 @media (min-width: 860px) { .only-m { display: none !important; } }
+
+/* ============ Drawing studio (full screen, like a notes app) ============ */
+.studio { position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; background: var(--bg-2); animation: fade .2s; }
+.studio.overlay { background: transparent; }
+.studio-top {
+  display: flex; align-items: center; gap: 4px; background: var(--surface); border-bottom: 1px solid var(--line);
+  padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+}
+.studio-top .icon-btn { width: 48px; height: 48px; color: var(--ink); }
+.studio-top .icon-btn:disabled { opacity: .3; }
+.studio-title { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
+.studio-save { min-height: 44px; padding: 0 14px; font-weight: 800; font-size: 1.05rem; color: var(--accent); border-radius: 12px; }
+.studio-save:hover { background: var(--accent-soft); }
+.studio-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.studio-page { position: relative; width: min(100%, 980px); margin: 0 auto; background-color: #fff; user-select: none; -webkit-user-select: none; box-shadow: 0 0 0 1px var(--line); }
+.studio.overlay .studio-page { width: 100%; box-shadow: none; }
+.studio-page svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.paper-lines { background-image: linear-gradient(#e4e8f2 1px, transparent 1px); background-size: 100% calc(var(--s) * 46px); background-position: 0 calc(var(--s) * 40px); }
+.paper-grid { background-image: linear-gradient(#e7eaf2 1px, transparent 1px), linear-gradient(90deg, #e7eaf2 1px, transparent 1px); background-size: calc(var(--s) * 40px) calc(var(--s) * 40px); }
+.paper-dots { background-image: radial-gradient(#c9cedb 1.2px, transparent 1.4px); background-size: calc(var(--s) * 36px) calc(var(--s) * 36px); }
+.studio-text { position: absolute; z-index: 2; border: 2px dashed #7c4dff; border-radius: 6px; background: rgba(255,255,255,.92); padding: 0 4px; outline: 0; resize: both; font-family: Manrope, system-ui, sans-serif; font-weight: 600; line-height: 1.3; overflow: hidden; }
+.studio-bottom { position: relative; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.studio-tray {
+  display: flex; align-items: flex-end; justify-content: center; gap: 8px; min-height: 76px; margin: 10px max(12px, env(safe-area-inset-left, 0px)) 0;
+  padding: 0 14px; background: var(--bg); border-radius: 40px; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; flex-wrap: nowrap;
+}
+.studio-tray .tiny, .studio-tray .chip, .studio-tray .icon-btn, .studio-tray .btn { align-self: center; }
+.studio-pens { display: flex; align-items: flex-end; gap: 2px; height: 76px; overflow: hidden; }
+.studio-pen { width: 46px; display: flex; justify-content: center; align-items: flex-end; height: 100%; }
+.studio-div { width: 1px; height: 40px; background: var(--line); align-self: center; margin: 0 4px; flex: none; }
+.studio-size { align-self: center; width: 64px; height: 44px; border-radius: 16px; background: #fff3d6; display: grid; place-items: center; flex: none; }
+.studio-size i { display: block; width: 34px; border-radius: 9px; background: var(--ink); }
+.studio-color { align-self: center; width: 48px; height: 48px; border-radius: 50%; padding: 4px; background: conic-gradient(#ff3b30, #ff9500, #ffcc00, #34c759, #00c7be, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30); flex: none; }
+.studio-color i { display: block; width: 100%; height: 100%; border-radius: 50%; border: 3px solid #fff; }
+.studio-tabs { display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 8px 4px; }
+.studio-tabs button { height: 54px; display: grid; place-items: center; color: var(--ink); border-radius: 14px; }
+.studio-tabs button.on { color: #e3a008; }
+.studio-pop {
+  position: absolute; z-index: 3; bottom: calc(100% + 8px); left: 0; right: 0; margin: 0 auto; width: min(420px, calc(100vw - 24px));
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px; animation: pageIn .2s var(--ease);
+}
+.studio-pop input[type="range"] { width: 100%; accent-color: var(--accent); height: 32px; }
+.studio-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 10px; }
+.studio-swatches .swatch { width: 40px; height: 40px; border-radius: 50%; }
+.swatch.custom { position: relative; background: conic-gradient(#ff3b30, #ffcc00, #34c759, #007aff, #af52de, #ff3b30); overflow: hidden; cursor: pointer; }
+.swatch.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.studio-menu { padding: 8px; gap: 2px; }
+.studio-menu > button { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: 12px; font-weight: 700; text-align: left; }
+.studio-menu > button:hover { background: var(--surface-2); }
+.studio-selbar {
+  position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg); padding: 8px 10px; width: max-content; max-width: calc(100vw - 24px);
+}
+.studio-selbar .swatch { width: 28px; height: 28px; }
+.studio-selbar .tiny { flex-basis: 100%; text-align: center; }
+@media (max-width: 400px) { .studio-pen { width: 40px; } .studio-size { width: 52px; } }

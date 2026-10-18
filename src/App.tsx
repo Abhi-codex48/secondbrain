@@ -15,6 +15,7 @@ import { Search } from "./pages/Search";
 const Reader = lazy(() => import("./pages/Reader").then((m) => ({ default: m.Reader })));
 const NoteEditor = lazy(() => import("./pages/NoteEditor").then((m) => ({ default: m.NoteEditor })));
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const Draw = lazy(() => import("./pages/Draw").then((m) => ({ default: m.Draw })));
 
 function Pages() {
   const route = useRoute();
@@ -28,6 +29,7 @@ function Pages() {
     case "more": page = <More route={route} />; break;
     case "search": page = <Search route={route} />; break;
     case "settings": page = <Settings />; break;
+    case "draw": page = <Draw key={route.path.join("/")} noteId={id ?? "new"} pageParam={route.path[2] ?? "new"} route={route} />; break;
     default: page = <Home />;
   }
   return <Layout route={route}><Suspense fallback={<div className="page"><div className="skel" style={{ width: "40%", height: 28 }} /></div>}>{page}</Suspense></Layout>;

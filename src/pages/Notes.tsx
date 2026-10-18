@@ -6,7 +6,7 @@ import { addDays, fmtDate, istDay } from "../lib/date";
 import { go, type Route } from "../lib/router";
 import { FOLDER_COLORS } from "../lib/theme";
 import { errMsg, Sheet, Skeleton, useConfirm, useDebounced, useToast } from "../components/ui";
-import { InkThumb } from "../components/Ink";
+import { PageThumb } from "../components/Studio";
 import { setTitle } from "../components/Layout";
 
 export const FOLDER_HEX: Record<string, string> = {
@@ -140,7 +140,7 @@ export function Notes({ route }: { route: Route }) {
         </div>
         <div className="row">
           {current && <button className="btn soft sm" onClick={() => setManage(current)}><Settings2 size={16} />Folder</button>}
-          {sel !== "trash" && <button className="btn grad sm" style={{ ["--c1" as string]: "var(--news-1)", ["--c2" as string]: "var(--news-2)" }} onClick={() => go(`note/new?ink=1${current ? `&f=${current.id}` : ""}`)}><PenLine size={16} />Write by hand</button>}
+          {sel !== "trash" && <button className="btn grad sm" style={{ ["--c1" as string]: "var(--news-1)", ["--c2" as string]: "var(--news-2)" }} onClick={() => go(`draw/new/new${current ? `?f=${current.id}` : ""}`)}><PenLine size={16} />Write by hand</button>}
           {sel === "trash" && (counts?.trash ?? 0) > 0 && <button className="btn danger sm" onClick={empty}><Trash2 size={16} />Empty Trash</button>}
         </div>
       </div>
@@ -222,7 +222,7 @@ export function Notes({ route }: { route: Route }) {
                       {n.ink?.length ? <span className="tag">Handwriting</span> : null}
                     </div>
                     <h3>{highlight(n.title || "Untitled", dq)}</h3>
-                    {inkOnly ? <InkThumb page={n.ink![0]} maxHeight={110} /> : (n.body_text || n.key_points?.lead) && <p>{highlight(snippet(n.body_text || n.key_points?.lead || "", dq), dq)}</p>}
+                    {inkOnly ? <PageThumb page={n.ink![0]} maxHeight={110} /> : (n.body_text || n.key_points?.lead) && <p>{highlight(snippet(n.body_text || n.key_points?.lead || "", dq), dq)}</p>}
                     <div className="row" style={{ justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
                       {sel === "trash" ? (
                         <>

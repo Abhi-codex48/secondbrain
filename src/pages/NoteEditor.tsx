@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Pin, PinOff, Trash2, History, ListChecks, PenLine, CloudOff, Check, Loader2, AlertTriangle, ExternalLink, X, RotateCcw } from "lucide-react";
 import { getNote, listFolders, listVersions, restoreNote, saveNote, trashNote, htmlToText } from "../lib/api";
-import type { Folder, InkPage, Note, NoteVersion } from "../lib/types";
+import type { Folder, Note, NoteVersion } from "../lib/types";
 import { fmtDate, fmtTime, istDay } from "../lib/date";
 import { back, go, type Route } from "../lib/router";
 import { RichEditor } from "../components/RichEditor";
-import { InkPageEditor, InkThumb, svgToPng } from "../components/Ink";
+import { PageThumb } from "../components/Studio";
+import { itemsOf } from "../lib/ink";
 import { KeyPointsView } from "../components/KeyPointsView";
 import { keyPoints, keyPointsToHtml } from "../lib/keypoints";
 import { errMsg, Sheet, Skeleton, useConfirm, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
-import { downloadBlob } from "../lib/backup";
 
 type SaveState = "idle" | "saving" | "saved" | "offline" | "error";
 type Draft = Partial<Note> & { id: string };
@@ -95,7 +95,7 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
     const next = { ...n, ...patch };
     noteRef.current = next;
     setNoteState(next);
-    const hasContent = next.title || next.body_html || next.ink?.some((p) => p.strokes.length) || next.key_points;
+    const hasContent = next.title || next.body_html || next.ink?.some((p) => itemsOf(p).length) || next.key_points;
     if (!hasContent && !created.current) return; // don't create empty notes
     pending.current = next;
     clearTimeout(timer.current);
@@ -103,15 +103,18 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
     setState("saving");
   }, [flush]);
 
-  const setInkPage = useCallback((i: number, p: InkPage) => {
-    const ink = [...(noteRef.current?.ink ?? [])];
-    ink[i] = p;
-    update({ ink });
-  }, [update]);
 
-  const addInk = () => update({ ink: [...(note?.ink ?? []), { id: crypto.randomUUID(), height: 900, strokes: [] }] });
+  // Handwriting opens in the full-screen drawing studio; the note is saved first so the page attaches to it.
+  const openDrawing = (i: number | "new") => {
+    if (!created.current) {
+      update({ title: noteRef.current?.title || "Untitled" });
+    }
+    flush();
+    go(`draw/${noteId}/${i}`);
+  };
+  const addInk = () => openDrawing("new");
   const removeInk = async (i: number) => {
-    if (note?.ink?.[i]?.strokes.length && !(await confirm({ title: "Delete this handwriting page?", body: "You can get it back from History.", confirm: "Delete page", danger: true }))) return;
+    if (!(await confirm({ title: "Delete this handwriting page?", body: "You can get it back from History.", confirm: "Delete page", danger: true }))) return;
     const ink = (note?.ink ?? []).filter((_, k) => k !== i);
     update({ ink: ink.length ? ink : null });
   };
@@ -172,13 +175,17 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
       <RichEditor html={note.body_html ?? ""} onChange={(html) => update({ body_html: html })} autofocus={isNew} placeholder="Write anything. Select text to format or highlight it." />
 
       {(note.ink ?? []).map((p, i) => (
-        <InkPageEditor
-          key={p.id ?? i}
-          page={p}
-          onChange={(np) => setInkPage(i, np)}
-          onDelete={() => removeInk(i)}
-          onExport={async (svg) => downloadBlob(await svgToPng(svg, "#ffffff"), `${(note.title || "handwriting").slice(0, 40)}-${i + 1}.png`)}
-        />
+        <div key={p.id ?? i} className="card stack ink-card">
+          <button className="ink-preview" onClick={() => openDrawing(i)} aria-label={`Open handwriting page ${i + 1}`}>
+            <PageThumb page={p} maxHeight={320} />
+          </button>
+          <div className="row">
+            <span className="tiny">Handwriting page {i + 1}</span>
+            <span className="grow" />
+            <button className="btn soft sm" onClick={() => openDrawing(i)}><PenLine size={16} />Open</button>
+            <button className="icon-btn sm" onClick={() => removeInk(i)} aria-label="Delete page"><Trash2 size={17} /></button>
+          </div>
+        </div>
       ))}
 
       <div className="row">
@@ -244,7 +251,7 @@ function HistorySheet({ noteId, onClose, onRestore }: { noteId: string; onClose:
                 {open === v.id && (
                   <div className="card" style={{ maxHeight: 280, overflow: "auto" }}>
                     <div className="prose compact" dangerouslySetInnerHTML={{ __html: sanitize(v.body_html || "<p><em>No typed text</em></p>") }} />
-                    {v.ink?.[0] && <InkThumb page={v.ink[0]} />}
+                    {v.ink?.[0] && <PageThumb page={v.ink[0]} />}
                   </div>
                 )}
               </div>
