@@ -1,6 +1,8 @@
 name: Deploy website and news
 
 # Builds the site and collects the latest UPSC headlines every hour.
+# GitHub Pages switches to a new version only after it is fully uploaded, and
+# any failed step stops the deploy, so the live site is never taken down.
 on:
   push:
     branches: [main, claude/modest-knuth-jpz4zd]
@@ -21,8 +23,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm

@@ -258,9 +258,18 @@ let states: Map<string, NewsState> | null = null;
 
 export async function loadNewsFile(force = false): Promise<NewsFile> {
   if (newsFile && !force && Date.now() - newsLoadedAt < 10 * 60_000) return newsFile;
-  const res = await fetch(`./news.json?t=${Date.now()}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Today's news hasn't been fetched yet. It updates every hour.");
-  newsFile = await res.json();
+  try {
+    const res = await fetch(`./news.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const text = await res.text();
+    newsFile = JSON.parse(text);
+    try { localStorage.setItem("sb-news", text); } catch { /* storage full: fine */ }
+  } catch {
+    // Offline or the site is unreachable: show the last news list this device saw.
+    const saved = (() => { try { return localStorage.getItem("sb-news"); } catch { return null; } })();
+    if (!saved) throw new Error("News couldn't be loaded. Check your connection; headlines update every hour.");
+    newsFile = JSON.parse(saved);
+  }
   newsLoadedAt = Date.now();
   return newsFile!;
 }

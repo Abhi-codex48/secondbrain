@@ -107,6 +107,8 @@ async function main() {
   for (const f of fresh) if (!seen.has(f.id)) seen.set(f.id, f);
   const items = [...seen.values()].sort((a, b) => (b.publishedAt ?? b.fetchedAt).localeCompare(a.publishedAt ?? a.fetchedAt)).slice(0, 1200);
 
+  // Never publish an empty list: failing here stops the deploy, so the live site keeps its last news.
+  if (items.length === 0) throw new Error("No headlines from any source and no previous list; keeping the live site as it is.");
   writeFileSync(out, JSON.stringify({ generatedAt: fetchedAt, sources: report.sort((a, b) => a.name.localeCompare(b.name)), items }));
   console.log(`news.json: ${items.length} items (${fresh.length} fetched now)`);
   for (const r of report) console.log(`${r.ok ? "OK  " : "FAIL"} ${r.name}: ${r.count}${r.fallback ? " (Google News)" : ""}${r.error ? ` — ${r.error}` : ""}`);
