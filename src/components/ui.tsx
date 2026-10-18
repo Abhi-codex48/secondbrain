@@ -139,4 +139,13 @@ export function useDebounced<T>(value: T, ms = 300): T {
   return v;
 }
 
-export const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** Turns technical errors into short messages people can act on. */
+export const errMsg = (e: unknown) => {
+  const m = e instanceof Error ? e.message : String(e);
+  const code = (e as { code?: string })?.code ?? "";
+  if (code === "permission-denied" || /permission/i.test(m)) return "You don't have access to this. Try signing out and in again.";
+  if (code === "unavailable" || /network|failed to fetch|offline/i.test(m)) return "You're offline. Your changes are kept on this device and sync when you're back online.";
+  if (code === "resource-exhausted" || /quota/i.test(m)) return "The free storage limit for today was reached. Try again tomorrow.";
+  if (/invalid data|setDoc|Firestore|firebase/i.test(m)) return "Couldn't save to the cloud. Your changes are kept on this device.";
+  return m;
+};

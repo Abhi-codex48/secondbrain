@@ -2,7 +2,7 @@
 
 A website for Android, iPhone, tablet and desktop. Anyone can sign in with Google and gets a private space that only they can read:
 
-- **News**: today's headlines from ten major newspapers plus PIB, collected automatically every hour. Opening a headline loads the **full article** (through the free Jina Reader service) with its **key points** (no AI). Bookmark articles or save any link.
+- **News**: today's headlines from ten major newspapers plus PIB, collected automatically every hour. Opening a headline loads the **full article** (through free reader services) with its **key points** (no AI). Bookmark articles or save any link.
 - **Notes**: your repository in folders. You get:
   - rich text: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images
   - handwriting with a pen or finger, and voice typing
@@ -59,7 +59,7 @@ To put it on your phone's home screen:
 **News.**
 - The page opens with today's headlines, sorted into topics: Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health and Editorial.
 - **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Deccan Herald, The Tribune, The New Indian Express, and PIB. If a paper's own feed fails, its headlines come from a Google News search for that site. Settings shows which sources are working.
-- **To study an article:** tap it. The full text loads in a few seconds from your own browser through [Jina Reader](https://jina.ai/reader/) (free, about 20 articles a minute per device without a key), with the key points, facts and figures, and the laws, bodies and schemes it mentions. Subscriber-only articles load only the part the site shows to everyone; for those, open the article and use **Paste article text**. The text stays private in your account.
+- **To study an article:** tap it. The full text loads in a few seconds from your own browser through free reader services (Jina Reader and two public page fetchers, tried at the same time), with the key points, facts and figures, and the laws, bodies and schemes it mentions. Subscriber-only articles load only the part the site shows to everyone; for those, open the article and use **Paste article text**. The text stays private in your account.
 
 **Key points without AI.**
 - The app scores every sentence by how many of the article's important words it contains, where it sits in the article, and whether it shares words with the headline. It then shows the best ones in their original order.
@@ -77,10 +77,11 @@ To put it on your phone's home screen:
 - **Text** (T): tap anywhere and type a label, in small, medium or large.
 - **Lasso:** draw a loop around anything to move it, resize it from the corner handle, recolour, duplicate or delete it.
 - **+ menu:** insert an image, add more space, choose paper (lined, grid, dots or plain), turn on stylus-only mode, or clear the page.
+- **Zoom:** pinch with two fingers to zoom in (up to 4×) and move around; tap the zoom label to reset.
 - **Stylus-only mode** turns on the first time a stylus touches the page, so your palm doesn't draw and a finger scrolls.
 - **Saving:** autosaves as you draw. **Save** returns to the note, and **Share** sends the page as a PNG image.
 
-**Pen mode** (the orange pen button on any screen) freezes what's on screen and opens the same studio on top of it. **Save** keeps the picture, your marks and the page's text together in a private note.
+**Pen mode** (the orange pen button on any screen) lets you write and highlight straight on the page. Scroll with two fingers (or one finger once you use a stylus, or the hand button). Nothing is saved until you press **Save**, which keeps a picture of that part of the page with your marks as a private note.
 
 **Voice typing** is the microphone button in the editor. It works in Chrome, Edge and most versions of Safari, but not Firefox. Your keyboard's own mic key works everywhere.
 
@@ -109,7 +110,7 @@ node --experimental-strip-types scripts/fetch-news.ts news.json   # try the news
 - `firestore.rules`: security rules.
 
 ## Known limits
-- Full text comes from Jina Reader; if that service is down or an article is for subscribers only, paste the text instead.
+- Full text comes from free reader services. Subscriber-only articles, and papers that only publish through Google News (currently The Indian Express), can't be loaded; open the article and paste the text instead.
 - Scheduled GitHub runs can be delayed at busy times, and GitHub pauses them if the repository has no activity for 60 days. Any push, or **Run workflow** in the Actions tab, restarts them.
 - Topic tags come from keywords, so some articles may be tagged with the wrong topic.
 - Each note can hold about 1 MB, which is enough for long text, several images or many pages of handwriting.

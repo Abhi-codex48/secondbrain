@@ -5,6 +5,7 @@ import { applyTheme } from "./lib/theme";
 import "./styles.css";
 
 applyTheme();
+if ("startViewTransition" in document) document.documentElement.classList.add("vt");
 // Cache the app on the device so it opens even when offline or when the host is down.
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));

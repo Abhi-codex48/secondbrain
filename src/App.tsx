@@ -17,6 +17,9 @@ const NoteEditor = lazy(() => import("./pages/NoteEditor").then((m) => ({ defaul
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
 const Draw = lazy(() => import("./pages/Draw").then((m) => ({ default: m.Draw })));
 
+/** Same look as the start-up screen in index.html, shown while sign-in is checked. */
+export const Splash = () => <div className="boot" role="status" aria-label="Loading"><div><img src="./icon.svg" alt="" /><i /></div></div>;
+
 function Pages() {
   const route = useRoute();
   const [p, id] = route.path;
@@ -33,16 +36,28 @@ function Pages() {
     default: page = <Home />;
   }
   // The drawing studio is full screen, so the app's bars and buttons are left out.
-  if (p === "draw") return <Suspense fallback={null}>{page}</Suspense>;
+  if (p === "draw") return <Suspense fallback={<Splash />}>{page}</Suspense>;
   return <Layout route={route}><Suspense fallback={<div className="page"><div className="skel" style={{ width: "40%", height: 28 }} /></div>}>{page}</Suspense></Layout>;
 }
+
+// Load the other screens in the background once the app is idle, so opening them is instant.
+const preload = () => {
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1200));
+  idle(() => {
+    import("./pages/Reader");
+    import("./pages/NoteEditor");
+    import("./pages/Settings");
+    import("./pages/Draw");
+  });
+};
 
 export function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   useEffect(() => (configured ? onAuthStateChanged(auth, setUser) : undefined), []);
+  useEffect(() => { if (user) preload(); }, [user]);
 
   if (!configured) return <NotConfigured />;
-  if (user === undefined) return null;
+  if (user === undefined) return <Splash />;
   return (
     <ToastProvider>
       <ConfirmProvider>{user ? <Pages key={user.uid} /> : <Auth />}</ConfirmProvider>

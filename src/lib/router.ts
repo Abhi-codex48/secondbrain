@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 // Hash routes work on GitHub Pages without server rewrites.
 export interface Route {
@@ -16,8 +17,15 @@ export function useRoute(): Route {
   const [route, setRoute] = useState(parse);
   useEffect(() => {
     const on = () => {
-      setRoute(parse());
-      window.scrollTo({ top: 0 });
+      const next = () => {
+        setRoute(parse());
+        window.scrollTo({ top: 0 });
+      };
+      // A quick cross-fade between screens where the browser supports it.
+      const d = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (d.startViewTransition && !still) d.startViewTransition(() => flushSync(next));
+      else next();
     };
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);

@@ -71,7 +71,7 @@ export function PageThumb({ page, maxHeight = 140 }: { page: Page; maxHeight?: n
   const box = unionBox(items);
   const h = Math.min(page.height, Math.max(220, (box ? box.y + box.h : 220) + 30));
   return (
-    <svg viewBox={`0 0 ${W} ${h}`} style={{ width: "100%", maxHeight, display: "block" }} preserveAspectRatio="xMinYMin meet" aria-label="Handwriting preview">
+    <svg viewBox={`0 0 ${W} ${h}`} style={{ width: "100%", maxHeight, display: "block", background: "#fff", borderRadius: 10 }} preserveAspectRatio="xMinYMin meet" aria-label="Handwriting preview">
       <Defs />
       {items.slice(0, 600).map((it) => <ItemView key={it.id} it={it} />)}
     </svg>
@@ -104,7 +104,7 @@ function PenIcon({ kind, color, active }: { kind: Tool; color: string; active: b
   const body = "#f4f3f8";
   const shade = "#dcd9e6";
   return (
-    <svg viewBox="0 0 40 96" width="34" height="82" style={{ transform: active ? "translateY(-12px)" : "translateY(6px)", transition: "transform .25s cubic-bezier(.2,.8,.2,1)", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.18))" }} aria-hidden="true">
+    <svg viewBox="0 0 40 96" style={{ transform: active ? "translateY(4px)" : "translateY(22px)", transition: "transform .25s cubic-bezier(.2,.8,.2,1)", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.18))" }} aria-hidden="true">
       {kind === "eraser" ? (
         <>
           <rect x="7" y="22" width="26" height="74" rx="4" fill="#d9cdbb" />
@@ -257,7 +257,15 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
     start: [number, number]; last: [number, number]; stroke?: StrokeItem; shape?: ShapeItem;
     hold?: ReturnType<typeof setTimeout>; recognized?: boolean; base?: Item[]; box?: ReturnType<typeof unionBox>; erased?: Item[];
   } | null>(null);
-  const touches = useRef(new Set<number>());
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  // Two-finger pinch zooms (1×–4×) and pans the page, like Notability.
+  const [zoom, setZoom] = useState(1);
+  const pinch = useRef<{ d0: number; z0: number; m0: [number, number]; s0: [number, number] } | null>(null);
+  const pinchInfo = () => {
+    const [a, b] = [...touches.current.values()];
+    const r = scroller.current!.getBoundingClientRect();
+    return { d: Math.hypot(a.x - b.x, a.y - b.y), m: [(a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top] as [number, number] };
+  };
 
   const toPage = (e: { clientX: number; clientY: number }): [number, number] => {
     const r = surface.current!.getBoundingClientRect();
@@ -272,14 +280,20 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
     setPop(null);
     if (e.pointerType === "pen" && !penOnly) setPenOnly(true); // a stylus was used: fingers stop drawing (palm rejection)
     if (e.pointerType === "touch") {
-      touches.current.add(e.pointerId);
-      if (touches.current.size > 1 && act.current && act.current.kind !== "scroll") {
-        clearTimeout(act.current.hold);
-        act.current = null;
-        setLive(null);
-        setLasso(null);
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size === 2) {
+        if (act.current) {
+          clearTimeout(act.current.hold);
+          act.current = null;
+          setLive(null);
+          setLasso(null);
+        }
+        const { d, m } = pinchInfo();
+        const sc = scroller.current!;
+        pinch.current = { d0: Math.max(d, 1), z0: zoom, m0: m, s0: [sc.scrollLeft, sc.scrollTop] };
         return;
       }
+      if (touches.current.size > 2) return;
       if (penOnly && tab !== "text") {
         act.current = { id: e.pointerId, kind: "scroll", start: [e.clientX, e.clientY], last: [e.clientX, e.clientY] };
         return;
@@ -364,6 +378,23 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
   };
 
   const move = (e: React.PointerEvent) => {
+    if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const pc = pinch.current;
+      if (pc && touches.current.size >= 2) {
+        const { d, m } = pinchInfo();
+        const z = Math.max(1, Math.min(4, (pc.z0 * d) / pc.d0));
+        const k = z / pc.z0;
+        setZoom(z);
+        requestAnimationFrame(() => {
+          const sc = scroller.current;
+          if (!sc) return;
+          sc.scrollLeft = (pc.s0[0] + pc.m0[0]) * k - m[0];
+          sc.scrollTop = (pc.s0[1] + pc.m0[1]) * k - m[1];
+        });
+        return;
+      }
+    }
     const a = act.current;
     if (!a || a.id !== e.pointerId) return;
     if (a.kind === "scroll") {
@@ -424,6 +455,10 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
 
   const up = (e: React.PointerEvent) => {
     touches.current.delete(e.pointerId);
+    if (pinch.current) {
+      if (touches.current.size < 2) pinch.current = null;
+      return;
+    }
     const a = act.current;
     if (!a || a.id !== e.pointerId) return;
     act.current = null;
@@ -562,11 +597,12 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
         <button className="studio-save" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
       </header>
 
+      {zoom > 1.02 && <button className="studio-zoom" onClick={() => setZoom(1)} aria-label="Reset zoom">{Math.round(zoom * 100)}% · Reset</button>}
       <div className="studio-scroll" ref={scroller}>
         <div
           ref={surface}
           className={`studio-page paper-${paper}`}
-          style={{ height: height * scale, cursor, touchAction: "none", ["--s" as string]: scale }}
+          style={{ height: height * scale, cursor, touchAction: "none", ["--s" as string]: scale, width: zoom === 1 ? undefined : `calc(min(100%, 980px) * ${zoom})` }}
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}
@@ -628,11 +664,9 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
             <button className="studio-size" onClick={() => setPop(pop === "size" ? null : "size")} aria-label="Thickness">
               <i style={{ height: Math.max(2, Math.min(18, style.size * (tool === "highlighter" ? 1.6 : 1))) }} />
             </button>
-            {tool !== "eraser" && (
-              <button className="studio-color" onClick={() => setPop(pop === "color" ? null : "color")} aria-label="Colour">
-                <i style={{ background: style.color }} />
-              </button>
-            )}
+            <button className="studio-color" onClick={() => setPop(pop === "color" ? null : "color")} aria-label="Colour" disabled={tool === "eraser"}>
+              <i style={{ background: tool === "eraser" ? "#fff" : style.color }} />
+            </button>
           </div>
         )}
         {tab === "draw" && shape && (

@@ -44,14 +44,14 @@ async function syncNotes(): Promise<Map<string, Note>> {
     if (!notes) {
       notes = new Map();
       const cached = await getDocsFromCache(col("notes")).catch(() => null);
-      cached?.docs.forEach((d) => notes!.set(d.id, d.data() as Note));
+      cached?.docs.forEach((d) => notes!.set(d.id, decodeInk<Note>(d.data())));
     }
     // Only notes changed since the newest one on this device are downloaded.
     let max = "";
     for (const n of notes.values()) if (n.updated_at > max) max = n.updated_at;
     try {
       const snap = await getDocs(max ? query(col("notes"), where("updated_at", ">", max)) : col("notes"));
-      snap.docs.forEach((d) => notes!.set(d.id, d.data() as Note));
+      snap.docs.forEach((d) => notes!.set(d.id, decodeInk<Note>(d.data())));
     } catch {
       /* offline: use what is on the device */
     }
@@ -104,8 +104,25 @@ export async function getNote(id: string): Promise<Note> {
   if (hit && !hit.purged) return hit;
   const d = await getDoc(doc(col("notes"), id));
   if (!d.exists() || (d.data() as Note).purged) throw new Error("This note doesn't exist any more");
-  m.set(id, d.data() as Note);
-  return d.data() as Note;
+  const n = decodeInk<Note>(d.data());
+  m.set(id, n);
+  return n;
+}
+
+// Firestore can't store arrays inside arrays (handwriting points are [x, y, pressure]),
+// so the drawing is stored as a JSON string and turned back into objects when read.
+type Stored = Record<string, unknown> & { ink?: unknown; ink_json?: string | null };
+export function encodeInk<T extends { ink?: unknown }>(n: T): Record<string, unknown> {
+  const { ink, ...rest } = n;
+  return { ...rest, ink: null, ink_json: ink ? JSON.stringify(ink) : null };
+}
+export function decodeInk<T>(raw: unknown): T {
+  const d = { ...(raw as Stored) };
+  if (typeof d.ink_json === "string") {
+    try { d.ink = JSON.parse(d.ink_json); } catch { d.ink = null; }
+  }
+  delete d.ink_json;
+  return d as T;
 }
 
 const VERSION_GAP_MS = 10 * 60_000;
@@ -130,13 +147,13 @@ export function saveNote(patch: Partial<Note> & { id?: string }): { note: Note; 
   if (size > 950_000) throw new Error("This note is too large to save (Firestore allows about 1 MB per note). Move some images or handwriting into a new note.");
   m.set(id, note);
 
-  const writes: Promise<void>[] = [setDoc(doc(col("notes"), id), note)];
+  const writes: Promise<void>[] = [setDoc(doc(col("notes"), id), encodeInk(note))];
   // Version history: keep the previous content when it changes, at most once every 10 minutes.
   const changed = prev && (prev.body_html !== note.body_html || prev.title !== note.title || JSON.stringify(prev.ink) !== JSON.stringify(note.ink) || JSON.stringify(prev.key_points) !== JSON.stringify(note.key_points));
   if (changed && (prev.body_html || prev.ink || prev.key_points) && Date.now() - (lastSnapshot.get(id) ?? 0) > VERSION_GAP_MS) {
     lastSnapshot.set(id, Date.now());
     const v: NoteVersion = { id: newId(), title: prev.title, body_html: prev.body_html, ink: prev.ink, key_points: prev.key_points, created_at: t };
-    writes.push(setDoc(doc(collection(db, "users", uid(), "notes", id, "versions"), v.id), v).then(() => pruneVersions(id)));
+    writes.push(setDoc(doc(collection(db, "users", uid(), "notes", id, "versions"), v.id), encodeInk(v)).then(() => pruneVersions(id)));
   }
   return { note, synced: Promise.all(writes).then(() => undefined) };
 }
@@ -148,7 +165,7 @@ async function pruneVersions(noteId: string) {
 
 export async function listVersions(noteId: string): Promise<NoteVersion[]> {
   const vs = await getDocs(query(collection(db, "users", uid(), "notes", noteId, "versions"), orderBy("created_at", "desc"), limit(MAX_VERSIONS)));
-  return vs.docs.map((d) => d.data() as NoteVersion);
+  return vs.docs.map((d) => decodeInk<NoteVersion>(d.data()));
 }
 
 export const trashNote = (id: string) => saveNote({ id, deleted_at: now() }).synced;
@@ -388,7 +405,7 @@ export async function importAll(data: Record<string, Record<string, unknown>[]>,
       const b = writeBatch(db);
       for (const r of rows.slice(i, i + 400)) {
         const { id, ...rest } = r as { id: string };
-        b.set(doc(col(t), id), t === "newsState" || t === "articles" ? rest : r);
+        b.set(doc(col(t), id), t === "newsState" || t === "articles" ? rest : t === "notes" ? encodeInk(r) : r);
       }
       await b.commit();
     }
