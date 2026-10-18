@@ -29,14 +29,14 @@ export function Home() {
           {c && <span className="count">{c.news} today</span>}
           <span className="ic"><Newspaper size={26} /></span>
           <h2>News</h2>
-          <p>Today's UPSC news from ten major newspapers and PIB, updated every hour. Key points from any article you paste.</p>
+          <p>Today's headlines from ten major newspapers and PIB, updated every hour. Bookmark what matters and keep notes on it.</p>
           <span className="go">Open News <ArrowRight size={18} /></span>
         </a>
         <a className="tile t-notes" href="#/notes">
           {c && <span className="count">{c.notes} notes</span>}
           <span className="ic"><FolderOpen size={26} /></span>
           <h2>Notes</h2>
-          <p>Your repository in folders. Type, highlight, write by hand. Search and filter everything.</p>
+          <p>Your private space in folders. Type, highlight, or write and draw by hand like on paper. Search and filter everything.</p>
           <span className="go">Open Notes <ArrowRight size={18} /></span>
         </a>
         <a className="tile t-more" href="#/more">

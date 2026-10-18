@@ -109,7 +109,7 @@ export function Settings() {
       </Section>
 
       <Section icon={<Newspaper size={19} />} title="News sources" color="var(--news-2)">
-        <p className="tiny">Headlines are collected automatically every hour from the newspapers' public feeds and only UPSC-related ones are kept. If a paper's own feed fails, its headlines come from Google News instead.</p>
+        <p className="tiny">Headlines are collected automatically every hour from the newspapers' public feeds. Sports, entertainment and shopping stories are left out. If a paper's own feed fails, its headlines come from Google News instead.</p>
         {health === null ? <Skeleton /> : health.sources.length === 0 ? <p className="muted">The first hourly news update hasn't run yet.</p> : (
           <div>
             <p className="tiny">Last update {relTime(health.generatedAt)}</p>

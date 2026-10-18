@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Personal UPSC study notes and news reader",
+  "description": "Private notes, handwriting and daily news reader",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

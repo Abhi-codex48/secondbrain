@@ -40,8 +40,9 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
         setFolders(await listFolders().catch(() => []));
         if (isNew) {
           const f = route.query.get("f");
-          setNote({ id: noteId, kind: "note", title: "", body_html: "", ink: null, folder_id: f && f !== "none" ? f : null, read_on: istDay(), pinned: false });
-          setTitle("New note");
+          const hand = route.query.get("ink") === "1";
+          setNote({ id: noteId, kind: hand ? "ink" : "note", title: "", body_html: "", ink: hand ? [{ id: crypto.randomUUID(), height: 1400, strokes: [] }] : null, folder_id: f && f !== "none" ? f : null, read_on: istDay(), pinned: false });
+          setTitle(hand ? "New handwritten note" : "New note");
           return;
         }
         const n = await getNote(noteId);

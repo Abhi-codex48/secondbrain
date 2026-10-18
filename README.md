@@ -1,8 +1,8 @@
-# Second Brain: UPSC notes and news
+# Second Brain: private notes, handwriting and daily news
 
-A personal study website for Android, iPhone, tablet and desktop:
+A website for Android, iPhone, tablet and desktop. Anyone can sign in with Google and gets a private space that only they can read:
 
-- **News**: today's UPSC-related headlines from ten major newspapers plus PIB, collected automatically every hour. Open an article, paste its text, and get its **key points** with no AI. You can also paste any link.
+- **News**: today's headlines from ten major newspapers plus PIB, collected automatically every hour. Bookmark articles, paste an article's text to get its **key points** (no AI), or save any link.
 - **Notes**: your repository in folders. You get:
   - rich text: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images
   - handwriting with a pen or finger, and voice typing
@@ -22,7 +22,7 @@ No AI service is used, and nothing needs a credit card.
 |---|---|---|
 | Website | **GitHub Pages** | Serves the app |
 | Login and your notes | **Google Firebase**: Authentication and Cloud Firestore, Spark plan | Sign in with Google; notes, folders, tasks and handwriting are stored privately and synced across devices. Works offline; changes sync when you reconnect. |
-| News | **GitHub Actions**, every hour | Reads the newspapers' public RSS feeds and publishes the UPSC-related **headlines, links and short feed descriptions** with the site. Article text is never copied. |
+| News | **GitHub Actions**, every hour | Reads the newspapers' public RSS feeds and publishes the **headlines, links and short feed descriptions** with the site (sports, entertainment and shopping stories are left out). Article text is never copied. |
 | Key points | **Your device** | Picks the most informative sentences, the facts and figures, and the laws, bodies and schemes mentioned, straight from the text you paste. Nothing is reworded, so nothing is made up. |
 
 Firebase free (Spark) plan limits, from third-party pricing guides at build time; check the Firebase console for current values:
@@ -57,7 +57,7 @@ To put it on your phone's home screen:
 ## Using it
 
 **News.**
-- The page opens with today's headlines, filtered to UPSC topics: Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health and Editorial.
+- The page opens with today's headlines, sorted into topics: Polity, Economy, Environment, Science & Tech, International, Society, Security, Geography, History & Culture, Agriculture, Health and Editorial.
 - **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Deccan Herald, The Tribune, The New Indian Express, and PIB. If a paper's own feed fails, its headlines come from a Google News search for that site. Settings shows which sources are working.
 - **To study an article:** tap it, then **Open article** to read it on the newspaper's site. Copy the text and **Paste article text**. You get the gist, key points, facts and figures, and the laws, bodies and schemes it mentions. Add your own note and **Save to notes**. Pasted text stays private in your account.
 
@@ -97,7 +97,7 @@ node --experimental-strip-types scripts/fetch-news.ts news.json   # try the news
 - `src/lib/api.ts`: Firestore data layer (device cache plus downloading only what changed).
 - `src/lib/keypoints.ts`: key-point extraction.
 - `scripts/fetch-news.ts`: the hourly news collector.
-- `shared/`: feed list, RSS parser and UPSC topic classifier.
+- `shared/`: feed list, RSS parser and topic classifier.
 - `firestore.rules`: security rules.
 
 ## Known limits

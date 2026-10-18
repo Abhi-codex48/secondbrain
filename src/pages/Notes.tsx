@@ -140,6 +140,7 @@ export function Notes({ route }: { route: Route }) {
         </div>
         <div className="row">
           {current && <button className="btn soft sm" onClick={() => setManage(current)}><Settings2 size={16} />Folder</button>}
+          {sel !== "trash" && <button className="btn grad sm" style={{ ["--c1" as string]: "var(--news-1)", ["--c2" as string]: "var(--news-2)" }} onClick={() => go(`note/new?ink=1${current ? `&f=${current.id}` : ""}`)}><PenLine size={16} />Write by hand</button>}
           {sel === "trash" && (counts?.trash ?? 0) > 0 && <button className="btn danger sm" onClick={empty}><Trash2 size={16} />Empty Trash</button>}
         </div>
       </div>

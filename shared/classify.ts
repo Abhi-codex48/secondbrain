@@ -1,5 +1,5 @@
-// Keyword-based UPSC topic tagging. Runs without AI. A headline is kept only
-// if it matches at least one UPSC topic and none of the excluded categories.
+// Keyword-based topic tagging for news. Runs without AI. A headline is kept only
+// if it matches at least one topic and none of the excluded categories.
 
 export const TOPICS = [
   "Polity",

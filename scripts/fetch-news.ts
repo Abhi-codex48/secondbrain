@@ -1,5 +1,5 @@
 // Fetches today's headlines from the newspapers' public RSS feeds, keeps the
-// UPSC-relevant ones and writes news.json for the website. Runs every hour in
+// relevant ones (public affairs, economy, science and similar) and writes news.json for the website. Runs every hour in
 // GitHub Actions: node --experimental-strip-types scripts/fetch-news.ts <out> [previousUrl]
 // Only headlines, links, dates and the feeds' own short descriptions are
 // published; article text is never copied.

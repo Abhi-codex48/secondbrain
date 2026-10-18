@@ -34,7 +34,7 @@ export function Auth() {
           <img src="./icon.svg" alt="" style={{ width: 40, height: 40 }} />
           <span>Second Brain</span>
         </div>
-        <p className="muted">Your private UPSC notes and daily news. Sign in to sync across your phone, tablet and laptop.</p>
+        <p className="muted">Your private notes, handwriting and daily news, synced across your phone, tablet and laptop. Only you can see your notes.</p>
         <button className="btn line block" style={{ minHeight: 52 }} onClick={go} disabled={busy}>
           {busy ? <Loader2 size={18} className="spin" /> : <GoogleIcon />}
           Continue with Google

@@ -34,7 +34,7 @@ export function KeyPointsView({ k, actions }: { k: KeyPoints; actions?: React.Re
       {sec("Facts and figures", k.facts, 1)}
       {chips("Laws, bodies and schemes mentioned", k.mentions, 2)}
       {chips("Key terms", k.terms, 3)}
-      {chips("UPSC topics", k.topics, 4)}
+      {chips("Topics", k.topics, 4)}
       <p className="tiny">Sentences picked from the text as written, nothing reworded. Check figures before relying on them.</p>
     </div>
   );
