@@ -10,7 +10,7 @@ A website for Android, iPhone, tablet and desktop. Anyone can sign in with Googl
 - **More**: a to-do list, "What I studied today", and a search of everything you recorded on any date.
 - **Pen mode** on every screen: draw over what you're reading and save it as a handwriting note.
 - **Search** across your notes, news and Wikipedia, with a one-tap Google search.
-- **Backup**: download everything as a restorable file or as Markdown, and free up space.
+- **Backup and deletion**: download everything as a restorable file or as Markdown, free up space, delete all your data, or delete your account (Settings).
 
 No AI service is used, and nothing needs a credit card.
 
@@ -44,7 +44,7 @@ Cloud Storage and Cloud Functions need the paid Blaze plan, so this app doesn't 
 3. In **Authentication → Settings → Authorized domains**, click **Add domain** and add `abhi-codex48.github.io`.
 4. **Build → Firestore Database → Create database.** Pick a location (e.g. `asia-south1`, Mumbai) and **Start in production mode**.
 5. In **Firestore → Rules**, replace everything with the contents of [`firestore.rules`](firestore.rules) and click **Publish**. This makes your notes readable and writable only by you.
-6. Open **Project settings** (gear icon) → **General** → **Your apps** → click the **Web** icon `</>`. Name it `secondbrain` and click **Register app** (no hosting needed). Copy the `firebaseConfig` values it shows into [`src/firebase-config.ts`](src/firebase-config.ts), or send them to Claude to add. These values are meant to be public; the rules from step 5 protect your data.
+6. Open **Project settings** (gear icon) → **General** → **Your apps** → click the **Web** icon `</>`. Name it `secondbrain` and click **Register app** (no hosting needed). Copy the `firebaseConfig` values it shows into [`src/firebase-config.ts`](src/firebase-config.ts) (already done for this site). These values are meant to be public; the rules from step 5 protect your data.
 
 After the config is committed, the site rebuilds by itself. Open **https://abhi-codex48.github.io/secondbrain/** and tap **Continue with Google**.
 

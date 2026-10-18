@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Sun, Moon, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut } from "lucide-react";
+import { Palette, Sun, Moon, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { deleteEverything, deleteOldNewsData, emptyTrash, newsHealth, storageUsage } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
-import { auth, clearLocalConfig, signOut } from "../lib/firebase";
+import { auth, confirmIdentity, deleteAccount, signOut } from "../lib/firebase";
 import { applyTheme, currentTheme, PALETTES, type Mode, type PaletteId } from "../lib/theme";
 import type { Source } from "../lib/types";
 import { relTime } from "../lib/date";
@@ -87,6 +87,23 @@ export function Settings() {
     await run("all", deleteEverything, "Everything was deleted");
   };
 
+  const removeAccount = async () => {
+    if (!(await confirm({ title: "Delete your account?", body: "All your notes, handwriting, folders, tasks and saved news are permanently deleted from our servers, and your sign-in is removed. This cannot be undone. Download a backup first if you may need anything. You'll be asked to confirm with Google.", confirm: "Delete my account", danger: true, typeToConfirm: "DELETE" }))) return;
+    setBusy("account");
+    try {
+      await confirmIdentity();
+      await deleteEverything();
+      await deleteAccount();
+      try { localStorage.clear(); } catch { /* ignore */ }
+      toast("Your account and all your data were deleted");
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? "";
+      toast(code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request" ? "Account not deleted: Google confirmation was cancelled" : code === "auth/user-mismatch" ? "Please confirm with the same Google account you're signed in with" : errMsg(e), { bad: true });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const total = usage ? usage.notes_bytes + usage.trash_bytes + usage.other_bytes : 0;
 
   return (
@@ -167,7 +184,14 @@ export function Settings() {
           <span className="muted">{email}</span>
           <button className="btn line" onClick={() => signOut()}><LogOut size={17} />Sign out</button>
         </div>
-        <button className="btn soft sm" style={{ alignSelf: "flex-start" }} onClick={async () => { if (await confirm({ title: "Disconnect this device?", body: "Signs out and removes the Firebase settings saved on this device. Your notes stay safe in Firebase.", confirm: "Disconnect" })) { await signOut(); clearLocalConfig(); window.location.reload(); } }}>Disconnect this device from Firebase</button>
+        <div className="alert bad">
+          <Trash2 size={20} color="var(--bad)" />
+          <div className="stack" style={{ gap: 8 }}>
+            <b>Delete account</b>
+            <span className="tiny">Permanently deletes your account and every note, drawing, folder, task and saved article in it. Signing out does not delete anything.</span>
+            <button className="btn danger sm" style={{ alignSelf: "flex-start" }} disabled={!!busy} onClick={removeAccount}>{busy === "account" ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}Delete my account…</button>
+          </div>
+        </div>
       </Section>
     </div>
   );
