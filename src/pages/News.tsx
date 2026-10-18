@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle } from "lucide-react";
+import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown } from "lucide-react";
 import { addLink, listNews, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
 import type { NewsItem, Source } from "../lib/types";
-import { fmtDate, fmtTime, istDay, relTime } from "../lib/date";
+import { istDay, relTime } from "../lib/date";
 import { go } from "../lib/router";
 import { TOPICS } from "../../shared/classify";
 import { errMsg, Skeleton, useToast } from "../components/ui";
@@ -13,6 +13,8 @@ export const srcColor = (key: string) => SRC_COLORS[[...key].reduce((a, ch) => a
 export const LEVEL: Record<NewsItem["content_level"], string> = { full: "Full text", excerpt: "Excerpt", headline: "Headline only" };
 
 type View = "today" | "unread" | "saved" | "all";
+const OTHER = "Other news";
+const PER_GROUP = 4;
 
 export function News() {
   const [items, setItems] = useState<NewsItem[] | null>(null);
@@ -24,6 +26,7 @@ export function News() {
   const [synced, setSynced] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [fetching, setFetching] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -101,6 +104,18 @@ export function News() {
 
   const failing = sources.filter((s) => !s.ok);
   const topics = useMemo(() => ["", ...TOPICS, "Editorial"], []);
+  // Grouped by topic so a day's 300+ headlines read like a newspaper's sections.
+  const groups = useMemo(() => {
+    if (!items) return [];
+    if (topic) return [{ name: topic, items }];
+    const m = new Map<string, NewsItem[]>();
+    for (const it of items) {
+      const k = it.topics[0] ?? OTHER;
+      m.set(k, [...(m.get(k) ?? []), it]);
+    }
+    const order = [...topics.slice(1), OTHER];
+    return [...m.entries()].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0])).map(([name, items]) => ({ name, items }));
+  }, [items, topic, topics]);
 
   return (
     <div className="page" style={{ ["--c1" as string]: "var(--news-2)" }}>
@@ -158,7 +173,7 @@ export function News() {
       )}
 
       {items === null ? (
-        <div className="news-grid">{[0, 1, 2, 3].map((i) => <div key={i} className="card"><Skeleton lines={3} /></div>)}</div>
+        <div className="nsecs">{[0, 1].map((i) => <div key={i} className="card"><Skeleton lines={5} /></div>)}</div>
       ) : items.length === 0 ? (
         <div className="card empty">
           <Newspaper size={34} />
@@ -166,27 +181,45 @@ export function News() {
           <span className="tiny">{view === "today" ? "Tap Refresh to check the newspapers, or switch to All." : "Try another topic or paper."}</span>
         </div>
       ) : (
-        <div className="news-grid">
-          {items.map((it, i) => (
-            <article key={it.id} className={`card ncard ${it.status !== "new" ? "read" : ""}`} style={{ ["--src" as string]: srcColor(it.source_key), animationDelay: `${Math.min(i, 12) * 30}ms`, cursor: "pointer" }}
-              onClick={() => go(`read/${it.id}`)}>
-              <div className="meta">
-                <span className="src">{it.source_name}</span>
-                <span>·</span>
-                <span>{it.published_at ? `${fmtDate(it.published_at, { day: "numeric", month: "short" })}, ${fmtTime(it.published_at)}` : "Date not given"}</span>
-                {it.topics.slice(0, 2).map((t) => <span key={t} className="tag">{t}</span>)}
-                <span className={`tag ${it.content_level}`}>{LEVEL[it.content_level]}</span>
-              </div>
-              <h3>{it.title}</h3>
-              {it.description && <p>{it.description}</p>}
-              <div className="row" style={{ justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
-                <button className="icon-btn sm" onClick={() => setStatus(it, it.status === "saved" ? "read" : "saved")} aria-label={it.status === "saved" ? "Unsave" : "Save for later"} title="Save for later">
-                  {it.status === "saved" ? <BookmarkCheck size={18} color="var(--accent)" /> : <Bookmark size={18} />}
-                </button>
-                <button className="icon-btn sm" onClick={() => setStatus(it, "dismissed")} aria-label="Hide" title="Hide"><X size={18} /></button>
-              </div>
-            </article>
-          ))}
+        <div className="nsecs">
+          {groups.map((g) => {
+            const open = !!topic || expanded.has(g.name) || g.items.length <= PER_GROUP + 1;
+            const shown = open ? g.items : g.items.slice(0, PER_GROUP);
+            return (
+              <section key={g.name} className="nsec">
+                {!topic && (
+                  <header>
+                    <h2>{g.name}</h2>
+                    <span className="count">{g.items.length}</span>
+                    <span className="grow" />
+                    {g.name !== OTHER && <button className="btn soft sm" onClick={() => setTopic(g.name)}>See all</button>}
+                  </header>
+                )}
+                <ul>
+                  {shown.map((it) => (
+                    <li key={it.id} className={`nrow ${it.status !== "new" ? "read" : ""}`} style={{ ["--src" as string]: srcColor(it.source_key) }}>
+                      <button className="nmain" onClick={() => go(`read/${it.id}`)}>
+                        <span className="nmeta"><b>{it.source_name}</b><span>{it.published_at ? `${relTime(it.published_at)}` : ""}</span></span>
+                        <span className="ntitle">{it.title}</span>
+                        {it.description && <span className="ndesc">{it.description}</span>}
+                      </button>
+                      <div className="nacts">
+                        <button className="icon-btn sm" onClick={() => setStatus(it, it.status === "saved" ? "read" : "saved")} aria-label={it.status === "saved" ? "Unsave" : "Save for later"} title="Save for later">
+                          {it.status === "saved" ? <BookmarkCheck size={18} color="var(--accent)" /> : <Bookmark size={18} />}
+                        </button>
+                        <button className="icon-btn sm" onClick={() => setStatus(it, "dismissed")} aria-label="Hide" title="Hide"><X size={16} /></button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {!open && (
+                  <button className="nmore" onClick={() => setExpanded((x) => new Set(x).add(g.name))}>
+                    Show {g.items.length - PER_GROUP} more <ChevronDown size={16} />
+                  </button>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>
