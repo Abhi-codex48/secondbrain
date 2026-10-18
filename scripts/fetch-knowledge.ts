@@ -129,7 +129,13 @@ async function main() {
         image: main.thumbnail?.source ?? null,
       });
     }
-    brief.trending = (f.mostread?.articles ?? [])
+    // The most-read list is published a day late, so fall back to yesterday's feed.
+    let mostread = f.mostread?.articles;
+    if (!mostread?.length) {
+      const [yy, ym, yd] = ymd(yest);
+      mostread = (await get(`https://en.wikipedia.org/api/rest_v1/feed/featured/${yy}/${ym}/${yd}`).catch(() => null))?.mostread?.articles ?? [];
+    }
+    brief.trending = (mostread ?? [])
       .filter((a: { title: string; extract?: string; description?: string }) => a.extract && !NOT_ARTICLES.test(a.title.replace(/_/g, " ")) && !/^(Topics referred to|Wikimedia)/.test(a.description ?? ""))
       .slice(0, 8)
       .map((a: { normalizedtitle?: string; title: string; extract: string; content_urls?: { desktop?: { page?: string } }; thumbnail?: { source?: string }; views: number }) => ({
