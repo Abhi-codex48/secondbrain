@@ -151,7 +151,16 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
       </div>
 
       <div className="editor-head">
-        <input className="title-input" value={note.title ?? ""} onChange={(e) => update({ title: e.target.value })} placeholder="Title" aria-label="Title" />
+        <textarea
+          className="title-input"
+          rows={1}
+          value={note.title ?? ""}
+          onChange={(e) => update({ title: e.target.value.replace(/\n/g, " ") })}
+          onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+          ref={(el) => { if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; } }}
+          placeholder="Title"
+          aria-label="Title"
+        />
         <div className="row">
           <select className="select" style={{ width: "auto", minWidth: 150, flex: "0 1 220px" }} value={note.folder_id ?? ""} onChange={(e) => update({ folder_id: e.target.value || null })} aria-label="Folder">
             <option value="">No folder</option>
@@ -165,9 +174,11 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
       </div>
 
       {note.source_url && (
-        <div className="card row" style={{ padding: 12 }}>
-          <ExternalLink size={16} />
-          <a href={note.source_url} target="_blank" rel="noopener noreferrer" className="grow" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.source_name ?? note.source_url}</a>
+        <div className="card stack" style={{ padding: 12, gap: 4 }}>
+          <a href={note.source_url} target="_blank" rel="noopener noreferrer" className="row" style={{ flexWrap: "nowrap", gap: 8, minWidth: 0 }}>
+            <ExternalLink size={16} style={{ flex: "none" }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{note.source_name ?? note.source_url}</span>
+          </a>
           <span className="tiny">{note.source_published_at ? `Published ${fmtDate(note.source_published_at)}` : "Publication date not given"}</span>
         </div>
       )}

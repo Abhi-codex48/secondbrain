@@ -32,6 +32,8 @@ function Pages() {
     case "draw": page = <Draw key={route.path.join("/")} noteId={id ?? "new"} pageParam={route.path[2] ?? "new"} route={route} />; break;
     default: page = <Home />;
   }
+  // The drawing studio is full screen, so the app's bars and buttons are left out.
+  if (p === "draw") return <Suspense fallback={null}>{page}</Suspense>;
   return <Layout route={route}><Suspense fallback={<div className="page"><div className="skel" style={{ width: "40%", height: 28 }} /></div>}>{page}</Suspense></Layout>;
 }
 

@@ -284,7 +284,7 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 
 /* ============ Editor ============ */
 .editor-head { display: flex; flex-direction: column; gap: 10px; }
-.title-input { width: 100%; border: 0; outline: 0; background: transparent; font-family: var(--f-display); font-weight: 800; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); letter-spacing: -.015em; padding: 4px 0; }
+.title-input { width: 100%; border: 0; outline: 0; background: transparent; resize: none; overflow: hidden; line-height: 1.2; display: block; font-family: var(--f-display); font-weight: 800; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); letter-spacing: -.015em; padding: 4px 0; }
 .title-input::placeholder { color: var(--ink-3); }
 .savestate { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 700; color: var(--ink-3); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .savestate .lucide { flex: none; }
@@ -483,3 +483,24 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .studio-selbar .swatch { width: 28px; height: 28px; }
 .studio-selbar .tiny { flex-basis: 100%; text-align: center; }
 @media (max-width: 400px) { .studio-pen { width: 40px; } .studio-size { width: 52px; } }
+
+/* ============ Layout safety (overflow and overlap fixes) ============ */
+/* Long words and links wrap instead of pushing the page sideways. */
+.ncard h3, .ncard p, .result b, .result span, .log-item b, .todo-item .t, .layer, .sum li, .doubt p, .hero h1, .page-head h1, .editor-head .title-input { overflow-wrap: anywhere; word-break: break-word; }
+.result, .log-item, .news-grid > *, .note-list > *, .notes-layout > *, .reader > * { min-width: 0; }
+/* Folder names shrink with "…" so counts stay readable. */
+.folder-btn .nm { flex: 1; min-width: 0; }
+@media (max-width: 859px) { .folder-btn .nm { max-width: 60vw; } }
+/* Tags never run off screen. */
+.tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* Room for the floating Pen and Note buttons at the end of every page. */
+.main { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 860px) { .main { padding-bottom: 170px; } }
+/* Small phones: compact top bar. */
+@media (max-width: 380px) {
+  .topbar-in { gap: 4px; }
+  .brand span { display: none; }
+  .top-actions .icon-btn { width: 42px; }
+  .studio-title { display: none; }
+  .studio-top .icon-btn { width: 44px; }
+}
