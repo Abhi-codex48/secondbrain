@@ -12,7 +12,8 @@ import { SECTIONS, TOP_STORIES, sectionFromUrl } from "../shared/sections.ts";
 const [out = "news.json", previousUrl] = process.argv.slice(2);
 const MAX_AGE_MS = 48 * 3600_000; // ignore feed items older than two days
 const KEEP_MS = 3 * 86400_000; // keep three days in the file
-const PER_SECTION = 15; // per paper and section, so no section crowds out the rest
+const PER_SECTION = 25; // per paper and section, so no section crowds out the rest
+const PER_FALLBACK = 60; // papers read through Google News, and single-feed sources like PIB
 const PER_SOURCE = 160;
 // Advertising dressed as news (shopping deals, coupons) is left out; everything else is kept.
 const ADS = /\b(deals?|discounts?|coupons?|offers? on|price drop|lowest price|buy now|sale on)\b/i;
@@ -63,8 +64,10 @@ async function main() {
   await Promise.all(DEFAULT_SOURCES.map(async (src) => {
     const rows: NewsItem[] = [];
     const errors: string[] = [];
+    const cap = src.feeds.length <= 1 ? PER_FALLBACK : PER_SECTION;
     const collect = (items: FeedItem[], section: string | null, viaGoogle: boolean) => {
       const perSection = new Map<string, number>();
+      const limit = viaGoogle ? PER_FALLBACK : cap;
       for (const it of items) {
         if (it.publishedAt && now - Date.parse(it.publishedAt) > MAX_AGE_MS) continue;
         const title = viaGoogle ? it.title.replace(/\s+-\s+[^-]+$/, "") : it.title;
@@ -73,7 +76,7 @@ async function main() {
         // The paper's own section: from the article's address, else from the feed.
         const sec = (viaGoogle ? null : sectionFromUrl(url)) ?? section ?? TOP_STORIES;
         const n = perSection.get(sec) ?? 0;
-        if (n >= PER_SECTION) continue;
+        if (n >= limit) continue;
         perSection.set(sec, n + 1);
         const description = viaGoogle ? "" : it.description.slice(0, 240);
         rows.push({

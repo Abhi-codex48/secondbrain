@@ -23,7 +23,6 @@ const toi = (section: Section, id: string) => f(section, `https://timesofindia.i
 const et = (section: Section, id: string) => f(section, `https://economictimes.indiatimes.com/rssfeeds/${id}.cms`);
 const mint = (section: Section, path: string) => f(section, `https://www.livemint.com/rss/${path}`);
 const bs = (section: Section, path: string) => f(section, `https://www.business-standard.com/rss/${path}.rss`);
-const fe = (section: Section, path: string) => f(section, `https://www.financialexpress.com/${path}/feed/`);
 
 export const DEFAULT_SOURCES: SourceDef[] = [
   {
@@ -46,9 +45,8 @@ export const DEFAULT_SOURCES: SourceDef[] = [
   {
     key: "hindustan-times", name: "Hindustan Times", site: "hindustantimes.com",
     feeds: [
-      ht("India", "india-news"), ht("World", "world-news"), ht("Business", "business"), ht("Opinion", "opinion"),
-      ht("Opinion", "editorials"), ht("Science & Tech", "science"), ht("Environment", "environment"),
-      ht("Education", "education"), ht("Sports", "sports"), ht("Entertainment", "entertainment"),
+      ht("India", "india-news"), ht("World", "world-news"), ht("Business", "business"),
+      ht("Opinion", "editorials"), ht("Education", "education"), ht("Sports", "sports"), ht("Entertainment", "entertainment"),
       ht("Cities", "cities"), ht("Lifestyle", "lifestyle"),
     ],
   },
@@ -73,26 +71,21 @@ export const DEFAULT_SOURCES: SourceDef[] = [
     feeds: [
       mint("Business", "economy"), mint("Business", "markets"), mint("Business", "companies"), mint("Opinion", "opinion"),
       mint("India", "politics"), mint("Science & Tech", "technology"), mint("Science & Tech", "science"),
-      mint("Education", "education"), mint("Sports", "sports"), mint("Lifestyle", "lifestyle"),
+      mint("Education", "education"), mint("Sports", "sports"),
     ],
   },
   {
     key: "business-standard", name: "Business Standard", site: "business-standard.com",
     feeds: [bs("India", "india-news-216"), bs("Business", "economy-102"), bs("Business", "markets-106"), bs("Business", "companies-101"), bs("Opinion", "opinion-105"), bs("Science & Tech", "technology-108")],
   },
-  {
-    key: "financial-express", name: "Financial Express", site: "financialexpress.com",
-    feeds: [fe("Business", "economy"), fe("Business", "market"), fe("India", "india-news"), fe("Opinion", "opinion"), fe("Science & Tech", "life/technology")],
-  },
+  // Financial Express blocks automated feed readers (HTTP 403), so it comes through Google News.
+  { key: "financial-express", name: "Financial Express", site: "financialexpress.com", feeds: [] },
   { key: "deccan-herald", name: "Deccan Herald", site: "deccanherald.com", feeds: [] },
   { key: "tribune", name: "The Tribune", site: "tribuneindia.com", feeds: [] },
   { key: "new-indian-express", name: "The New Indian Express", site: "newindianexpress.com", feeds: [] },
   { key: "telegraph", name: "The Telegraph", site: "telegraphindia.com", feeds: [] },
   { key: "statesman", name: "The Statesman", site: "thestatesman.com", feeds: [] },
-  {
-    key: "down-to-earth", name: "Down To Earth", site: "downtoearth.org.in",
-    feeds: [f("Environment", "https://www.downtoearth.org.in/rss/all")],
-  },
+  { key: "down-to-earth", name: "Down To Earth", site: "downtoearth.org.in", feeds: [] },
   {
     key: "pib", name: "PIB (Govt. of India)", site: "pib.gov.in",
     feeds: [f("Government", "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3")],
