@@ -128,8 +128,15 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
     else force((n) => n + 1);
   };
 
+  // While a question is on screen, the page underneath can't be drawn on.
+  const [asking, setAsking] = useState(false);
   const close = async () => {
-    if (items.length && !(await confirm({ title: "Discard your marks?", body: "They haven't been saved. Press Save to keep them as a note.", confirm: "Discard", danger: true }))) return;
+    if (items.length) {
+      setAsking(true);
+      const ok = await confirm({ title: "Discard your marks?", body: "They haven't been saved. Press Save to keep them as a note.", confirm: "Discard", danger: true });
+      setAsking(false);
+      if (!ok) return;
+    }
     onClose();
   };
 
@@ -166,14 +173,14 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
   return createPortal(
     <>
       <div className="pen-layer" style={{ width: size.w, height: size.h }}>
-        <svg width={size.w} height={size.h} style={{ pointerEvents: scroll ? "none" : "auto", touchAction: "none" }}
+        <svg width={size.w} height={size.h} style={{ pointerEvents: scroll || asking ? "none" : "auto", touchAction: "none" }}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
           {all.map((it) => it.type === "stroke" && (
             <path key={it.id} d={strokePath(it)} fill={it.color} opacity={it.pen === "highlighter" ? 0.42 : 1} style={it.pen === "highlighter" && !dark() ? { mixBlendMode: "multiply" } : undefined} />
           ))}
         </svg>
       </div>
-      <div className="pen-bar" role="toolbar" aria-label="Pen mode">
+      <div className="pen-bar" role="toolbar" aria-label="Pen mode" style={asking ? { visibility: "hidden" } : undefined}>
         <button className="icon-btn" onClick={close} aria-label="Close pen mode" title="Close"><X size={20} /></button>
         <button className={`icon-btn ${scroll ? "on" : ""}`} onClick={() => setScroll((v) => !v)} aria-pressed={scroll} title={scroll ? "Scrolling: tap to draw" : "Tap to scroll the page"}><Hand size={20} /></button>
         <span className="sep" />

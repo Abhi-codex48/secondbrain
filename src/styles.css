@@ -620,3 +620,50 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 [data-mode="reading"] .prose, [data-mode="reading"] .article-text { line-height: 1.75; }
 /* Dark mode: calmer, less saturated colour blocks */
 [data-mode="dark"] .tile .ic, [data-mode="dark"] .chip.on, [data-mode="dark"] .fab, [data-mode="dark"] .btn.grad, [data-mode="dark"] .btn.primary, [data-mode="dark"] .hero h1 .wave { filter: saturate(.78) brightness(.94); }
+/* News: date navigation and headline search */
+.news-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.daybar { display: flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 3px; flex: none; }
+.daybar .icon-btn:disabled { opacity: .3; }
+.daypick { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border-radius: 12px; font-weight: 800; font-size: .9rem; cursor: pointer; white-space: nowrap; }
+.daypick:hover { background: var(--surface-2); }
+.daypick .lucide { color: var(--accent); }
+.daypick input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.daypick input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.news-q { flex: 1 1 220px; min-width: 0; min-height: 48px; }
+.news-q input { min-width: 0; }
+/* ============ Know more today (Home) ============ */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.kbox { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; animation: tileIn .45s var(--ease) .15s backwards; }
+.kbox-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: linear-gradient(120deg, color-mix(in srgb, var(--more-1) 14%, var(--surface)), color-mix(in srgb, var(--notes-1) 10%, var(--surface))); border-bottom: 1px solid var(--line); }
+.kbox-head h2 { font-size: 1.15rem; }
+.kbox-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(140deg, var(--more-1), var(--more-2)); flex: none; }
+.ktable { width: 100%; border-collapse: collapse; }
+.ktable thead th { text-align: left; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.ktable tbody tr { border-bottom: 1px solid var(--line); }
+.ktable tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.ktable th[scope="row"], .ktable td { padding: 14px 16px; vertical-align: top; text-align: left; }
+.ktable th[scope="row"] { width: 1%; white-space: nowrap; }
+.ksub { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 800; color: color-mix(in srgb, var(--k) 85%, var(--ink)); background: color-mix(in srgb, var(--k) 13%, transparent); padding: 4px 10px; border-radius: 999px; }
+.kbody { display: flex; gap: 12px; align-items: flex-start; }
+.kbody img { width: 56px; height: 56px; object-fit: cover; border-radius: 12px; flex: none; background: var(--surface-2); }
+.kbody b { display: block; font-size: 1rem; margin-bottom: 2px; }
+.kbody p { color: var(--ink-2); font-size: .9rem; line-height: 1.55; text-wrap: pretty; }
+.ksrc { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: .78rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+.kact { width: 1%; padding-left: 0 !important; }
+.kday { padding: 14px 18px 16px; border-top: 1px solid var(--line); }
+.kday h3 { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+.kday ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.kday li { display: grid; grid-template-columns: 56px 1fr; gap: 10px; font-size: .9rem; line-height: 1.45; }
+.kday a { color: var(--ink); text-decoration: none; }
+.kday a:hover { color: var(--accent); }
+.kyear { font-weight: 800; color: var(--more-2); font-variant-numeric: tabular-nums; }
+/* Phones: each table row becomes a stacked block, still inside the box */
+@media (max-width: 640px) {
+  .ktable thead { display: none; }
+  .ktable, .ktable tbody, .ktable tr { display: block; }
+  .ktable tbody tr { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "sub act" "body body"; padding: 12px 14px; }
+  .ktable th[scope="row"] { grid-area: sub; padding: 0; align-self: center; }
+  .ktable td { padding: 8px 0 0; }
+  .ktable td:not(.kact) { grid-area: body; }
+  .ktable .kact { grid-area: act; padding: 0; }
+}

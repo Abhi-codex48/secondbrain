@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown } from "lucide-react";
-import { addLink, listNews, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
+import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Search } from "lucide-react";
+import { addLink, archiveDays, listNews, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
 import type { NewsItem, Source } from "../lib/types";
-import { istDay, relTime } from "../lib/date";
+import { fmtDate, istDay, relTime } from "../lib/date";
 import { go } from "../lib/router";
 import { SECTIONS, TOP_STORIES } from "../../shared/sections";
 import { errMsg, Skeleton, useToast } from "../components/ui";
@@ -14,6 +14,7 @@ export const LEVEL: Record<NewsItem["content_level"], string> = { full: "Full te
 
 type View = "today" | "unread" | "saved" | "all";
 const OTHER = TOP_STORIES;
+const shiftDay = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
 const PER_GROUP = 4;
 
 export function News() {
@@ -22,6 +23,12 @@ export function News() {
   const [topic, setTopic] = useState("");
   const [src, setSrc] = useState("");
   const [view, setView] = useState<View>("today");
+  const [day, setDay] = useState(istDay());
+  const [q, setQ] = useState("");
+  const [qq, setQq] = useState("");
+  const [oldest, setOldest] = useState<string | null>(null);
+  useEffect(() => { const t = setTimeout(() => setQq(q.trim()), 200); return () => clearTimeout(t); }, [q]);
+  useEffect(() => { archiveDays().then((d) => setOldest(d.length ? d[d.length - 1].day : null)); }, []);
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState<string | null>(null);
   const [url, setUrl] = useState("");
@@ -34,14 +41,15 @@ export function News() {
       const rows = await listNews({
         source: src || undefined,
         status: view === "saved" ? "saved" : view === "unread" ? "unread" : undefined,
-        day: view === "today" ? istDay() : undefined,
+        day: view === "today" ? day : undefined,
+        q: qq || undefined,
       });
       setAll(rows);
     } catch (e) {
       toast(errMsg(e), { bad: true });
       setAll([]);
     }
-  }, [src, view, toast]);
+  }, [src, view, day, qq, toast]);
   // Section filter is exact: a headline shows only under the section its paper filed it in.
   const items = useMemo(() => (all && topic ? all.filter((n) => n.topics[0] === topic) : all), [all, topic]);
   const setItems = (fn: (xs: NewsItem[] | null) => NewsItem[] | null) => setAll(fn);
@@ -163,9 +171,27 @@ export function News() {
       <div className="seg" role="tablist" style={{ maxWidth: 520 }}>
         {(["today", "unread", "saved", "all"] as View[]).map((v) => (
           <button key={v} className={view === v ? "on" : ""} onClick={() => setView(v)} role="tab" aria-selected={view === v}>
-            {v === "today" ? "Today" : v === "unread" ? "Unread" : v === "saved" ? "Saved" : "All"}
+            {v === "today" ? "By date" : v === "unread" ? "Unread" : v === "saved" ? "Saved" : "All"}
           </button>
         ))}
+      </div>
+
+      <div className="news-tools">
+        {view === "today" && (
+          <div className="daybar" role="group" aria-label="Date">
+            <button className="icon-btn" onClick={() => setDay(shiftDay(day, -1))} disabled={!!oldest && day <= oldest} aria-label="Previous day"><ChevronLeft size={20} /></button>
+            <label className="daypick">
+              <CalendarDays size={17} />
+              <span>{day === istDay() ? "Today" : day === shiftDay(istDay(), -1) ? "Yesterday" : fmtDate(`${day}T12:00:00+05:30`, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
+              <input type="date" value={day} min={oldest ?? undefined} max={istDay()} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="Pick a date" />
+            </label>
+            <button className="icon-btn" onClick={() => setDay(shiftDay(day, 1))} disabled={day >= istDay()} aria-label="Next day"><ChevronRight size={20} /></button>
+          </div>
+        )}
+        <label className="searchbox news-q">
+          <Search size={17} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={view === "today" ? "Search this day's headlines" : "Search headlines"} aria-label="Search headlines" type="search" />
+        </label>
       </div>
 
       <div className="chips" aria-label="Topics">
@@ -192,7 +218,7 @@ export function News() {
         <div className="card empty">
           <Newspaper size={34} />
           <b>{syncing ? "Fetching today's news…" : "Nothing here yet"}</b>
-          <span className="tiny">{view === "today" ? "Tap Refresh to check the newspapers, or switch to All." : "Try another topic or paper."}</span>
+          <span className="tiny">{qq ? "No headline matches your search." : view === "today" ? (day === istDay() ? "Tap Refresh to check the newspapers, or switch to All." : "No headlines were saved for this day.") : "Try another section or paper."}</span>
         </div>
       ) : (
         <div className="nsecs">

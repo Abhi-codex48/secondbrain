@@ -3,6 +3,7 @@ import { ArrowRight, FolderOpen, LayoutGrid, ListTodo, Newspaper, PenLine, Plus 
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
+import { KnowledgeBox } from "../components/KnowledgeBox";
 
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", hour12: false }).format(new Date()));
@@ -48,6 +49,7 @@ export function Home() {
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
       </div>
+      <KnowledgeBox />
     </div>
   );
 }

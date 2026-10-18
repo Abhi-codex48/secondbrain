@@ -291,6 +291,27 @@ export async function loadNewsFile(force = false): Promise<NewsFile> {
   return newsFile!;
 }
 
+// ---------- news archive (one file per day, last 90 days) ----------
+const archive = new Map<string, Promise<NewsFile["items"]>>();
+function loadArchiveDay(day: string): Promise<NewsFile["items"]> {
+  if (!archive.has(day)) {
+    archive.set(day, fetch(`./archive/${day}.json`).then((r) => (r.ok ? r.json() : { items: [] })).then((j) => j.items ?? []).catch(() => {
+      archive.delete(day);
+      return [];
+    }));
+  }
+  return archive.get(day)!;
+}
+/** Days that have archived headlines, newest first. */
+export async function archiveDays(): Promise<{ day: string; count: number }[]> {
+  try {
+    const r = await fetch("./archive/index.json", { cache: "no-store" });
+    return r.ok ? (await r.json()).days ?? [] : [];
+  } catch {
+    return [];
+  }
+}
+
 async function loadStates() {
   if (!states) {
     const s = await getDocs(col("newsState"));
@@ -308,22 +329,27 @@ function toItem(i: NewsFile["items"][number], st?: NewsState, text?: string | nu
 }
 
 export async function listNews(opts: { topic?: string; source?: string; status?: string; day?: string; q?: string } = {}): Promise<NewsItem[]> {
-  const [f, st] = await Promise.all([loadNewsFile(), loadStates()]);
+  const [f, st, past] = await Promise.all([loadNewsFile(), loadStates(), opts.day && opts.day !== istDay() ? loadArchiveDay(opts.day) : Promise.resolve([])]);
   const q = opts.q?.toLowerCase();
-  return f.items
+  const all = new Map(past.map((i) => [i.id, i]));
+  for (const i of f.items) all.set(i.id, i);
+  return [...all.values()]
     .map((i) => toItem(i, st.get(i.id)))
     .filter((n) => (opts.status === "saved" ? n.status === "saved" : opts.status === "unread" ? n.status === "new" : n.status !== "dismissed"))
     .filter((n) => !opts.topic || n.topics.includes(opts.topic))
     .filter((n) => !opts.source || n.source_key === opts.source)
     .filter((n) => !opts.day || istDay(n.fetched_at) === opts.day || (n.published_at !== null && istDay(n.published_at) === opts.day))
-    .filter((n) => !q || n.title.toLowerCase().includes(q));
+    .filter((n) => !q || n.title.toLowerCase().includes(q) || n.description.toLowerCase().includes(q) || n.source_name.toLowerCase().includes(q))
+    .sort((a, b) => (b.published_at ?? b.fetched_at).localeCompare(a.published_at ?? a.fetched_at));
 }
 
 export async function getNews(id: string): Promise<NewsItem> {
   const [st, art] = await Promise.all([loadStates(), getDoc(doc(col("articles"), id)).catch(() => null)]);
   const saved = art?.exists() ? (art.data() as { text: string; item: NewsFile["items"][number] }) : null;
   const f = await loadNewsFile().catch(() => null);
-  const item = f?.items.find((i) => i.id === id) ?? saved?.item;
+  let item = f?.items.find((i) => i.id === id) ?? saved?.item;
+  // An older day's headline, opened from the archive.
+  if (!item) for (const p of archive.values()) { item = (await p).find((i) => i.id === id); if (item) break; }
   if (!item) throw new Error("This article is no longer in the news list");
   return toItem(item, st.get(id), saved?.text ?? null);
 }

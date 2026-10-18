@@ -1,6 +1,6 @@
 name: Deploy website and news
 
-# Builds the site and collects the latest UPSC headlines every hour.
+# Builds the site and collects the latest headlines every hour.
 # GitHub Pages switches to a new version only after it is fully uploaded, and
 # any failed step stops the deploy, so the live site is never taken down.
 on:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # to keep the day-by-day news archive on the news-archive branch
   pages: write
   id-token: write
 
@@ -34,6 +34,29 @@ jobs:
       - name: Fetch today's headlines
         # Keeps earlier headlines from the live site so the list builds up through the day.
         run: node --experimental-strip-types scripts/fetch-news.ts dist/news.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/news.json"
+      - name: Build today's knowledge box
+        run: node --experimental-strip-types scripts/fetch-knowledge.ts dist/knowledge.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/knowledge.json"
+      - name: Update the news archive
+        # Keeps every day's headlines (last 90 days) on the news-archive branch and
+        # publishes them at archive/. A failure here never stops the deploy.
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin news-archive > /dev/null; then
+            git fetch --depth=1 origin news-archive
+            git worktree add archive-wt FETCH_HEAD
+            git -C archive-wt checkout -q -B news-archive
+          else
+            git worktree add --detach archive-wt
+            git -C archive-wt checkout -q --orphan news-archive
+            git -C archive-wt rm -rfq .
+          fi
+          node --experimental-strip-types scripts/archive-news.ts dist/news.json archive-wt
+          git -C archive-wt add days
+          git -C archive-wt commit -qm "News archive $(date -u +%FT%H:%MZ)" || echo "No archive changes"
+          git -C archive-wt push -q origin news-archive
+          mkdir -p dist/archive && cp -r archive-wt/days/. dist/archive/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
