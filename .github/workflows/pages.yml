@@ -7,7 +7,9 @@ on:
   push:
     branches: [main, claude/modest-knuth-jpz4zd]
   schedule:
-    - cron: "17 * * * *" # every hour at :17 (GitHub may delay scheduled runs a little)
+    # Twice an hour, away from the busy top of the hour. GitHub drops or delays many scheduled
+    # runs under load, so an outside scheduler may also start this workflow (workflow_dispatch).
+    - cron: "11,41 * * * *"
   workflow_dispatch:
 
 permissions:
