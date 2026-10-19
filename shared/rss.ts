@@ -8,17 +8,34 @@ export interface FeedItem {
   sourceName?: string; // e.g. publisher named by Google News
 }
 
-const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", textNodeName: "#text", processEntities: true });
+// Entities are decoded by us (below): the parser's own decoding stops at 1000
+// entities per feed, which long feeds such as The Conversation or WHO exceed.
+const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", textNodeName: "#text", processEntities: false });
+
+const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", hellip: "…", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", rsquo2: "’" };
+export function decodeEntities(s: string): string {
+  // Twice, because some feeds escape their HTML ("&amp;amp;", "&lt;p&gt;").
+  for (let k = 0; k < 2; k++) {
+    s = s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+\d?);/gi, (m, e: string) => {
+      if (e[0] === "#") {
+        const n = e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m;
+      }
+      return NAMED[e.toLowerCase()] ?? m;
+    });
+  }
+  return s;
+}
 
 function text(v: unknown): string {
   if (v == null) return "";
-  if (typeof v === "string" || typeof v === "number") return String(v);
-  if (typeof v === "object" && "#text" in (v as Record<string, unknown>)) return String((v as Record<string, unknown>)["#text"]);
+  if (typeof v === "string" || typeof v === "number") return decodeEntities(String(v)).replace(/^<!\[CDATA\[|\]\]>$/g, "");
+  if (typeof v === "object" && "#text" in (v as Record<string, unknown>)) return decodeEntities(String((v as Record<string, unknown>)["#text"]));
   return "";
 }
 
 export function stripHtml(s: string): string {
-  return s
+  return decodeEntities(s)
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -59,7 +76,7 @@ export function parseFeed(xml: string): FeedItem[] {
     for (const e of arr(doc.feed.entry)) {
       const links = arr(e.link) as Array<Record<string, string>>;
       const link = links.find((l) => !l["@_rel"] || l["@_rel"] === "alternate") ?? links[0];
-      const url = link?.["@_href"] ?? "";
+      const url = decodeEntities(link?.["@_href"] ?? "");
       const title = stripHtml(text(e.title));
       if (!url || !title) continue;
       out.push({

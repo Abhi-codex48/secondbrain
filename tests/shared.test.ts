@@ -63,3 +63,14 @@ describe("sectionFromUrl", () => {
     expect(sectionFromUrl("https://pib.gov.in/PressReleasePage.aspx?PRID=1")).toBeNull();
   });
 });
+
+describe("feeds with many entities", () => {
+  it("parses past 1000 entities and decodes them", () => {
+    const items = Array.from({ length: 300 }, (_, i) => `<item><title>Rock &amp; roll &#8220;${i}&#8221; &lt;b&gt;</title><link>https://x.org/a?b=1&amp;c=${i}</link><description>&lt;p&gt;Caf&#233; &amp; more&lt;/p&gt;</description></item>`).join("");
+    const got = parseFeed(`<?xml version="1.0"?><rss><channel>${items}</channel></rss>`);
+    expect(got).toHaveLength(300);
+    expect(got[5].title).toBe("Rock & roll “5”");
+    expect(got[5].url).toBe("https://x.org/a?b=1&c=5");
+    expect(got[5].description).toBe("Café & more");
+  });
+});

@@ -15,6 +15,7 @@ import { Search } from "./pages/Search";
 const Reader = lazy(() => import("./pages/Reader").then((m) => ({ default: m.Reader })));
 const NoteEditor = lazy(() => import("./pages/NoteEditor").then((m) => ({ default: m.NoteEditor })));
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const Guide = lazy(() => import("./pages/Guide").then((m) => ({ default: m.Guide })));
 const Draw = lazy(() => import("./pages/Draw").then((m) => ({ default: m.Draw })));
 
 /** Same look as the start-up screen in index.html, shown while sign-in is checked. */
@@ -32,6 +33,7 @@ function Pages() {
     case "more": page = <More route={route} />; break;
     case "search": page = <Search route={route} />; break;
     case "settings": page = <Settings />; break;
+    case "guide": page = <Guide />; break;
     case "draw": page = <Draw key={route.path.join("/")} noteId={id ?? "new"} pageParam={route.path[2] ?? "new"} route={route} />; break;
     default: page = <Home />;
   }

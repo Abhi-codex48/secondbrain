@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Sun, Moon, BookOpen, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
+import { Palette, Sun, Moon, BookOpen, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp } from "lucide-react";
 import { deleteEverything, deleteOldNewsData, emptyTrash, newsHealth, storageUsage } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
 import { auth, confirmIdentity, deleteAccount, signOut } from "../lib/firebase";
@@ -108,7 +108,10 @@ export function Settings() {
 
   return (
     <div className="page">
-      <h1>Settings</h1>
+      <div className="between" style={{ flexWrap: "wrap", gap: 10 }}>
+        <h1>Settings</h1>
+        <a className="btn soft sm" href="#/guide"><CircleHelp size={16} />How it works</a>
+      </div>
 
       <Section icon={<Palette size={19} />} title="Appearance" color="var(--notes-1)">
         <div className="palette-pick">

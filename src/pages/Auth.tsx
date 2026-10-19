@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Globe2, Loader2, Lock, Newspaper, PenLine } from "lucide-react";
+import { CircleHelp, Globe2, Loader2, Lock, Newspaper, PenLine, X } from "lucide-react";
+import { GuideList } from "./Guide";
 import { signInWithGoogle } from "../lib/firebase";
 import { errMsg } from "../components/ui";
 
@@ -13,6 +14,7 @@ const GoogleIcon = () => (
 );
 
 export function Auth() {
+  const [how, setHow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const go = async () => {
@@ -47,8 +49,18 @@ export function Auth() {
           {busy ? "Signing in…" : "Continue with Google"}
         </button>
         {err && <p className="auth-err" role="alert">{err}</p>}
+        <button className="auth-how" onClick={() => setHow(true)}><CircleHelp size={16} />See how it works</button>
         <p className="tiny auth-fine">Free, with no ads. Download or delete everything any time from Settings.</p>
       </main>
+      {how && (
+        <>
+          <div className="scrim" onClick={() => setHow(false)} />
+          <div className="sheet guide-sheet" role="dialog" aria-label="How it works">
+            <div className="between"><h2>How it works</h2><button className="icon-btn" onClick={() => setHow(false)} aria-label="Close"><X size={20} /></button></div>
+            <GuideList />
+          </div>
+        </>
+      )}
     </div>
   );
 }

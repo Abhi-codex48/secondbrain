@@ -188,9 +188,8 @@ async function main() {
     },
     {
       key: "india", title: "India", boxes: await Promise.all([
-        box("govt", "Government decisions", "Cabinet, schemes and ministries (PIB)", feeds("Government decisions", [
-          { url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3", source: "PIB" },
-        ])),
+        // PIB refuses a second request in the same run, so use the PIB releases already collected for News.
+        box("govt", "Government decisions", "Cabinet, schemes and ministries (PIB)", fromNews((i) => i.sourceName.startsWith("PIB"), "Government decisions")),
         box("courts", "Courts", "Supreme Court and High Courts", feeds("Courts", [
           { url: "https://www.livelaw.in/category/top-stories/google_feeds.xml", source: "LiveLaw" },
           { url: "https://www.barandbench.com/feed", source: "Bar & Bench" },

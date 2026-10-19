@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, FolderOpen, LayoutGrid, ListTodo, Newspaper, PenLine, Plus } from "lucide-react";
+import { ArrowRight, FolderOpen, LayoutGrid, ListTodo, Newspaper, PenLine, Plus, CircleHelp } from "lucide-react";
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
@@ -28,6 +28,7 @@ export function Home() {
         <a href="#/note/new" style={{ ["--q" as string]: "var(--notes-1)" }}><Plus size={18} />New note</a>
         <a href="#/draw/new/new" style={{ ["--q" as string]: "var(--news-1)" }}><PenLine size={18} />Write by hand</a>
         <a href="#/more?t=todo" style={{ ["--q" as string]: "var(--more-1)" }}><ListTodo size={18} />To-do</a>
+        <a href="#/guide" style={{ ["--q" as string]: "var(--accent)" }}><CircleHelp size={18} />How it works</a>
       </nav>
 
       <div className="tiles">

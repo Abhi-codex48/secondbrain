@@ -724,3 +724,22 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .xbox li .xsrc { display: inline; font-weight: 600; }
 .xmore { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 40px; border-top: 1px solid var(--line); font-size: .82rem; font-weight: 800; color: var(--x); margin-top: auto; }
 .xmore:hover { background: var(--bg-2); }
+/* ============ How it works ============ */
+.guide { display: grid; grid-template-columns: 1fr; gap: 10px; min-width: 0; }
+@media (min-width: 900px) { .guide { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+.gpart { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; min-width: 0; }
+.gpart summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 14px; cursor: pointer; min-height: 56px; }
+.gpart summary::-webkit-details-marker { display: none; }
+.gpart summary::after { content: ""; width: 9px; height: 9px; flex: none; margin-left: auto; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(45deg); transition: transform .2s var(--ease); }
+.gpart[open] summary::after { transform: rotate(225deg); }
+.gic { width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; color: var(--g); background: color-mix(in srgb, var(--g) 14%, transparent); }
+.gt { min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.gt b { font-size: 1rem; }
+.gt span { font-size: .85rem; color: var(--ink-2); line-height: 1.4; overflow-wrap: anywhere; }
+.gpart ul { margin: 0; padding: 0 16px 14px 66px; display: grid; gap: 8px; }
+.gpart li { font-size: .9rem; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.gpart li::marker { color: var(--g); }
+@media (max-width: 420px) { .gpart ul { padding-left: 34px; } }
+.auth-how { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: .9rem; color: var(--accent); min-height: 40px; }
+.guide-sheet { max-width: 720px; margin: 0 auto; }
+.guide-sheet .guide { grid-template-columns: 1fr; }
