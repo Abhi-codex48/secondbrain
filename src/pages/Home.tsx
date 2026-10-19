@@ -3,6 +3,7 @@ import { ArrowRight, Library as LibraryIcon, ListTodo, Newspaper, PenLine, Plus,
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
+import { getName } from "../lib/profile";
 import { KnowledgeBox } from "../components/KnowledgeBox";
 import { Explore } from "../components/Explore";
 
@@ -12,6 +13,12 @@ function greeting() {
 }
 
 export function Home() {
+  const [name, setNameState] = useState(getName);
+  useEffect(() => {
+    const upd = () => setNameState(getName());
+    window.addEventListener("sb-name", upd);
+    return () => window.removeEventListener("sb-name", upd);
+  }, []);
   const [c, setC] = useState<{ news: number; notes: number; todos: number } | null>(null);
   useEffect(() => {
     setTitle("");
@@ -21,7 +28,7 @@ export function Home() {
     <div className="page" style={{ gap: 24 }}>
       <div className="hero">
         <span className="date">{fmtLong()}</span>
-        <h1>{greeting()}. <span className="wave">What are you reading today?</span></h1>
+        <h1>{greeting()}{name ? `, ${name}` : ""}. <span className="wave">What are you reading today?</span></h1>
       </div>
 
       <nav className="quick" aria-label="Quick actions">

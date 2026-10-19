@@ -33,6 +33,7 @@ export function applyTheme(p?: PaletteId, m?: Mode) {
   meta?.setAttribute("content", mode === "dark" ? "#14111f" : mode === "reading" ? "#f4ecd8" : "#fbfaff");
   write("sb-palette", palette);
   write("sb-mode", mode);
+  window.dispatchEvent(new Event("sb-theme"));
   return { palette, mode };
 }
 

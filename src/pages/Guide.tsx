@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import {
-  LogIn, Home, Newspaper, NotebookPen, PenLine, Highlighter, LayoutGrid, Search, Settings, ShieldCheck, Globe2, Compass, FileDown, WifiOff, TrendingUp, Library as LibraryIcon, type LucideIcon,
+  LogIn, Home, Newspaper, NotebookPen, PenLine, Highlighter, LayoutGrid, Search, Settings, ShieldCheck, Globe2, Compass, FileDown, WifiOff, TrendingUp, Library as LibraryIcon, Share2, type LucideIcon,
 } from "lucide-react";
 import { setTitle } from "../components/Layout";
 
@@ -11,7 +11,7 @@ export const GUIDE: Part[] = [
     icon: LogIn, color: "var(--accent)", title: "Getting started",
     lead: "Sign in once; your space is private to your Google account.",
     steps: [
-      "Tap Continue with Google. Nothing else to set up.",
+      "Tap Continue with Google. The first time, tell us what to call you, and Home greets you by name.",
       "Add it to your phone like an app: Chrome menu ⋮ → Add to Home screen, or Safari Share → Add to Home Screen.",
       "Your notes sync across phone, tablet and laptop, and work offline.",
     ],
@@ -22,6 +22,7 @@ export const GUIDE: Part[] = [
     steps: [
       "Quick buttons: New note, Write by hand, To-do, How it works.",
       "Tap the logo or the Home tab again to jump back to the top of any page.",
+      "Top bar: the sun / book / moon button switches Light, Reading (warm, easy on the eyes) and Dark mode; your picture opens Settings.",
     ],
   },
   {
@@ -113,6 +114,16 @@ export const GUIDE: Part[] = [
     ],
   },
   {
+    icon: Share2, color: "var(--news-2)", title: "Sharing",
+    lead: "Send a note, an article's key points or a passage as a link.",
+    steps: [
+      "Tap Share in a note or an article, or select a passage and tap Share passage. The link opens right at the shared part.",
+      "Choose how long the link works (1 hour to 30 days, custom, or no expiry). After that it stops opening.",
+      "Turn off any link early in Settings → Shared links. Only what you share is visible, nothing else in your account.",
+      "Share into Second Brain: add it to your phone's Home screen first, then pick Second Brain from any app's Share menu and choose where to keep it.",
+    ],
+  },
+  {
     icon: LayoutGrid, color: "var(--more-1)", title: "More",
     lead: "What you studied today, anything on any date, and your progress.",
     steps: [
@@ -131,9 +142,10 @@ export const GUIDE: Part[] = [
   },
   {
     icon: Settings, color: "var(--ink-2)", title: "Settings",
-    lead: "Make it yours.",
+    lead: "Tap your picture at the top. Everything is grouped, tap a row to open it.",
     steps: [
-      "Colour themes; Light, Reading (warm, easy on the eyes) or Dark mode.",
+      "Profile: change the name you're greeted by. Personalise: colour theme.",
+      "Content: news sources and your shared links.",
       "Download a backup or Markdown copy, restore a backup, free up space.",
       "Delete all your data or your whole account at any time.",
     ],

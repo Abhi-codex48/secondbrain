@@ -113,13 +113,14 @@ svg.lucide { flex: none; }
 .fab-stack { position: fixed; z-index: 24; right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
 @media (min-width: 860px) { .fab-stack { bottom: 28px; right: 28px; } }
 .fab {
-  height: 56px; min-width: 56px; padding: 0 20px; border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 52px; height: 52px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--notes-1), var(--notes-2));
   box-shadow: 0 10px 28px color-mix(in srgb, var(--notes-1) 40%, transparent); transition: transform .2s var(--ease);
 }
 .fab:hover { transform: translateY(-2px); }
 .fab:active { transform: scale(.95); }
-.fab.pen { padding: 0; width: 48px; min-width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(135deg, var(--news-1), var(--news-2)); box-shadow: 0 8px 22px color-mix(in srgb, var(--news-2) 35%, transparent); }
+.fab-stack { transition: transform .3s var(--ease), opacity .3s; }
+.fab-stack.away { transform: translateY(24px) scale(.6); opacity: 0; pointer-events: none; }
 
 /* ============ Controls ============ */
 .btn {
@@ -544,8 +545,8 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 /* Tags never run off screen. */
 .tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 /* Room for the floating Pen and Note buttons at the end of every page. */
-.main { padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px)); }
-@media (min-width: 860px) { .main { padding-bottom: 170px; } }
+.main { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 860px) { .main { padding-bottom: 110px; } }
 /* Small phones: compact top bar. */
 @media (max-width: 859px) { .brand span { display: none; } .topbar-in { gap: 8px; } }
 @media (max-width: 380px) {
@@ -870,3 +871,36 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .shared-focus { margin: 0; font-size: 1.05rem; line-height: 1.6; }
 mark.focus { background: color-mix(in srgb, var(--hl-yellow) 85%, transparent); color: inherit; border-radius: 4px; padding: 1px 2px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl-yellow) 40%, transparent); }
 .shared-ink { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+/* ============ Profile ============ */
+.avatar-btn { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; overflow: hidden; text-decoration: none; background: linear-gradient(140deg, var(--news-1), var(--notes-1)); color: #fff; font-weight: 800; font-size: .85rem; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--line); transition: transform .12s var(--ease), box-shadow .2s; }
+.avatar-btn.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.avatar-btn:active { transform: scale(.94); }
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+.name-sheet { max-width: 440px; margin: 0 auto; align-items: center; text-align: center; }
+.name-sheet .input { text-align: center; font-size: 1.1rem; font-weight: 700; }
+.name-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: linear-gradient(140deg, var(--news-1), var(--notes-1)); }
+@media (max-width: 380px) { .top-actions .icon-btn { width: 38px; } .avatar-btn { width: 36px; height: 36px; } }
+
+/* Settings: grouped list, like a phone's settings app */
+.profile-card { display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: var(--r-lg); background: linear-gradient(135deg, var(--notes-soft), var(--news-soft)); border: 1px solid var(--line); min-width: 0; }
+.profile-av { width: 64px; height: 64px; flex: none; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: linear-gradient(140deg, var(--news-1), var(--notes-1)); color: #fff; font-weight: 800; font-size: 1.4rem; box-shadow: 0 0 0 3px var(--surface); }
+.profile-av img { width: 100%; height: 100%; object-fit: cover; }
+.profile-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.profile-info .tiny { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-info form { flex-wrap: nowrap; }
+.profile-info .input { min-width: 0; flex: 1; }
+.profile-name { font-family: var(--f-display); font-size: 1.3rem; line-height: 1.2; overflow-wrap: anywhere; }
+.sgroup { margin: 10px 4px -4px; font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.sset { display: block; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; text-align: left; color: inherit; text-decoration: none; font: inherit; }
+.sset > summary, .slink { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; list-style: none; min-width: 0; }
+.sset > summary::-webkit-details-marker { display: none; }
+.sset > summary::after, .slink::after { content: "›"; margin-left: auto; flex: none; font-size: 1.4rem; line-height: 1; color: var(--ink-3); transition: transform .2s var(--ease); }
+.sset[open] > summary::after { transform: rotate(90deg); }
+.sset[open] > summary { border-bottom: 1px solid var(--line); }
+.sic { width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; color: var(--s); background: color-mix(in srgb, var(--s) 14%, transparent); }
+.stt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.stt b { font-size: 1rem; }
+.stt .tiny { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sbody { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.slink:hover, .sset > summary:hover { background: var(--surface-2); border-radius: var(--r); }
+.sset[open] > summary:hover { border-radius: var(--r) var(--r) 0 0; }

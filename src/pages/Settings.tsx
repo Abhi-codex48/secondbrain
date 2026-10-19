@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Sun, Moon, BookOpen, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp, Link2, Copy } from "lucide-react";
+import { Palette, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp, Link2, Copy, Pencil } from "lucide-react";
 import { deleteEverything, deleteOldNewsData, emptyTrash, listMyShares, newsHealth, revokeShare, shareUrl, storageUsage, type Share } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
 import { auth, confirmIdentity, deleteAccount, signOut } from "../lib/firebase";
-import { applyTheme, currentTheme, PALETTES, type Mode, type PaletteId } from "../lib/theme";
+import { getName, initials, setName } from "../lib/profile";
+import { applyTheme, currentTheme, PALETTES, type PaletteId } from "../lib/theme";
 import type { Source } from "../lib/types";
 import { fmtDate, fmtTime, relTime } from "../lib/date";
 import { errMsg, Skeleton, useConfirm, useToast } from "../components/ui";
@@ -14,14 +15,40 @@ const fmtBytes = (b: number) => (b < 1024 ? `${b} B` : b < MB ? `${(b / 1024).to
 // Firestore free (Spark) plan: about 1 GiB stored. Check the Firebase console for exact usage.
 const DB_LIMIT = 1024 * MB;
 
-function Section({ icon, title, children, color }: { icon: React.ReactNode; title: string; children: React.ReactNode; color: string }) {
+/** A settings group that opens on tap, like a phone's settings app. */
+function Section({ icon, title, sub, children, color, open }: { icon: React.ReactNode; title: string; sub?: React.ReactNode; children: React.ReactNode; color: string; open?: boolean }) {
   return (
-    <section className="card pad-lg stack">
-      <h2 className="row" style={{ gap: 10 }}>
-        <span style={{ width: 36, height: 36, borderRadius: 11, display: "grid", placeItems: "center", background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>{icon}</span>
-        {title}
-      </h2>
-      {children}
+    <details className="sset" open={open} style={{ ["--s" as string]: color }}>
+      <summary>
+        <span className="sic">{icon}</span>
+        <span className="stt"><b>{title}</b>{sub && <span className="tiny">{sub}</span>}</span>
+      </summary>
+      <div className="sbody">{children}</div>
+    </details>
+  );
+}
+
+function Profile() {
+  const [name, setNameState] = useState(getName);
+  const [editing, setEditing] = useState(false);
+  const [v, setV] = useState(name);
+  const u = auth.currentUser;
+  const save = () => { setName(v); setNameState(v.trim()); setEditing(false); };
+  return (
+    <section className="profile-card">
+      <span className="profile-av">{u?.photoURL ? <img src={u.photoURL} alt="" referrerPolicy="no-referrer" /> : initials(name, u?.email ?? "")}</span>
+      <div className="profile-info">
+        {editing ? (
+          <form className="row" style={{ gap: 6 }} onSubmit={(e) => { e.preventDefault(); save(); }}>
+            <input className="input" autoFocus value={v} onChange={(e) => setV(e.target.value)} maxLength={40} aria-label="Your name" />
+            <button className="btn primary sm">Save</button>
+          </form>
+        ) : (
+          <b className="profile-name">{name || "Add your name"}</b>
+        )}
+        <span className="tiny">{u?.email}</span>
+      </div>
+      {!editing && <button className="icon-btn" onClick={() => { setV(name); setEditing(true); }} aria-label="Edit your name" title="Edit your name"><Pencil size={18} /></button>}
     </section>
   );
 }
@@ -44,9 +71,12 @@ export function Settings() {
   useEffect(() => {
     setTitle("Settings");
     refresh();
+    const upd = () => setTheme(currentTheme());
+    window.addEventListener("sb-theme", upd);
+    return () => window.removeEventListener("sb-theme", upd);
   }, []);
 
-  const pickTheme = (p?: PaletteId, m?: Mode) => setTheme(applyTheme(p ?? theme.palette, m ?? theme.mode));
+  const pickTheme = (p: PaletteId) => setTheme(applyTheme(p, theme.mode));
 
   const run = async (key: string, fn: () => Promise<unknown>, done?: string) => {
     setBusy(key);
@@ -108,12 +138,11 @@ export function Settings() {
 
   return (
     <div className="page">
-      <div className="between" style={{ flexWrap: "wrap", gap: 10 }}>
-        <h1>Settings</h1>
-        <a className="btn soft sm" href="#/guide"><CircleHelp size={16} />How it works</a>
-      </div>
+      <h1>Settings</h1>
+      <Profile />
 
-      <Section icon={<Palette size={19} />} title="Appearance" color="var(--notes-1)">
+      <h3 className="sgroup">Personalise</h3>
+      <Section icon={<Palette size={19} />} title="Appearance" sub={`${PALETTES.find((p) => p.id === theme.palette)?.name ?? ""} · ${theme.mode === "reading" ? "Reading" : theme.mode === "dark" ? "Dark" : "Light"} mode`} color="var(--notes-1)">
         <div className="palette-pick">
           {PALETTES.map((p) => (
             <button key={p.id} className={theme.palette === p.id ? "on" : ""} onClick={() => pickTheme(p.id)}>
@@ -122,14 +151,11 @@ export function Settings() {
             </button>
           ))}
         </div>
-        <div className="seg" style={{ maxWidth: 420 }}>
-          <button className={theme.mode === "light" ? "on" : ""} onClick={() => pickTheme(undefined, "light")}><Sun size={17} />Light</button>
-          <button className={theme.mode === "reading" ? "on" : ""} onClick={() => pickTheme(undefined, "reading")}><BookOpen size={17} />Reading</button>
-          <button className={theme.mode === "dark" ? "on" : ""} onClick={() => pickTheme(undefined, "dark")}><Moon size={17} />Dark</button>
-        </div>
+        <p className="tiny">Light, Reading and Dark mode: tap the theme button at the top of any screen.</p>
       </Section>
 
-      <Section icon={<Newspaper size={19} />} title="News sources" color="var(--news-2)">
+      <h3 className="sgroup">Content</h3>
+      <Section icon={<Newspaper size={19} />} title="News sources" sub={health ? `${health.sources.filter((x) => x.ok).length} of ${health.sources.length} working · updated ${relTime(health.generatedAt)}` : "Checking…"} color="var(--news-2)">
         <p className="tiny">Headlines are collected every hour from each paper's section feeds and filed under the paper's own section. If all of a paper's feeds fail, its headlines come from Google News and are filed under Top stories.</p>
         {health === null ? <Skeleton /> : health.sources.length === 0 ? <p className="muted">The first hourly news update hasn't run yet.</p> : (
           <div>
@@ -147,7 +173,10 @@ export function Settings() {
         )}
       </Section>
 
-      <Section icon={<DatabaseBackup size={19} />} title="Backup and restore" color="var(--more-1)">
+      <SharedLinks />
+
+      <h3 className="sgroup">Your data</h3>
+      <Section icon={<DatabaseBackup size={19} />} title="Backup and restore" sub="Download, export or restore everything" color="var(--more-1)">
         <p className="tiny">The backup file contains everything: notes with their images and handwriting, folders, tasks, saved news and dates. Version history is not included.</p>
         <div className="row">
           <button className="btn primary" onClick={() => run("json", downloadJsonBackup, "Backup downloaded")} disabled={!!busy}>{busy === "json" ? <Loader2 size={17} className="spin" /> : <Download size={17} />}Download backup</button>
@@ -158,7 +187,7 @@ export function Settings() {
         {restoreMsg && <p className="row tiny" style={{ color: busy ? "var(--ink-2)" : "var(--ok)" }}>{busy ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={14} />}{restoreMsg}</p>}
       </Section>
 
-      <Section icon={<HardDrive size={19} />} title="Storage" color="var(--warn)">
+      <Section icon={<HardDrive size={19} />} title="Storage" sub={usage ? `${fmtBytes(total)} used of about 1 GB` : "Calculating…"} color="var(--warn)">
         {!usage ? <Skeleton /> : (
           <>
             <div className="stack" style={{ gap: 6 }}>
@@ -183,13 +212,18 @@ export function Settings() {
         )}
       </Section>
 
-      <SharedLinks />
+      <h3 className="sgroup">Help</h3>
+      <a className="sset slink" href="#/guide" style={{ ["--s" as string]: "var(--accent)" }}>
+        <span className="sic"><CircleHelp size={19} /></span>
+        <span className="stt"><b>How it works</b><span className="tiny">Every feature, in a few lines each</span></span>
+      </a>
 
-      <Section icon={<User size={19} />} title="Account" color="var(--ink-2)">
-        <div className="between">
-          <span className="muted">{email}</span>
-          <button className="btn line" onClick={() => signOut()}><LogOut size={17} />Sign out</button>
-        </div>
+      <h3 className="sgroup">Account</h3>
+      <button className="sset slink" onClick={() => signOut()} style={{ ["--s" as string]: "var(--ink-2)" }}>
+        <span className="sic"><LogOut size={19} /></span>
+        <span className="stt"><b>Sign out</b><span className="tiny">{email}</span></span>
+      </button>
+      <Section icon={<User size={19} />} title="Delete account" sub="Remove your account and all its data" color="var(--bad)">
         <div className="alert bad">
           <Trash2 size={20} color="var(--bad)" />
           <div className="stack" style={{ gap: 8 }}>
@@ -210,7 +244,7 @@ function SharedLinks() {
   useEffect(() => { listMyShares().then(setItems).catch(() => setItems([])); }, []);
   const live = (x: Share) => !x.expires_at || Date.parse(x.expires_at) > Date.now();
   return (
-    <Section icon={<Link2 size={19} />} title="Shared links" color="var(--notes-2)">
+    <Section icon={<Link2 size={19} />} title="Shared links" sub={items ? `${items.filter(live).length} active` : "Loading…"} color="var(--notes-2)">
       {items === null ? <Skeleton /> : items.length === 0 ? <p className="tiny">Links you share from a note, an article or a selected passage appear here. You can turn any of them off.</p> : (
         <ul className="rlist">
           {items.map((x) => (
