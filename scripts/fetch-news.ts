@@ -123,25 +123,28 @@ async function main() {
     if (failed.length) errors.push(`Feeds not working: ${failed.join(", ")}`);
     let fallback = false;
     let via: string | undefined;
-    // No feed of its own answered: try Bing News, then Google News (headlines only).
+    // No feed of its own answered: Bing News and Google News together (Bing gives about
+    // a dozen headlines with real links; Google adds more). Either one is enough.
     if (!ownOk) {
       fallback = true;
+      const used: string[] = [];
       try {
         const items = parseFeed(await get(bingNewsFeed(src.site)))
           .map((it) => ({ ...it, url: unwrapBing(it.url) }))
           .filter((it) => it.url.includes(src.site));
         if (!items.length) throw new Error("no headlines");
         collect(items, null, true);
-        via = "Bing News";
+        used.push("Bing News");
       } catch (e) {
         errors.push(`Bing News: ${(e as Error).message}`);
-        try {
-          collect(parseFeed(await getGoogle(googleNewsFeed(src.site))), null, true);
-          via = "Google News";
-        } catch (e2) {
-          errors.push(`Google News: ${(e2 as Error).message}`);
-        }
       }
+      try {
+        collect(parseFeed(await getGoogle(googleNewsFeed(src.site))), null, true);
+        used.push("Google News");
+      } catch (e) {
+        errors.push(`Google News: ${(e as Error).message}`);
+      }
+      via = used.join(" + ") || undefined;
     }
     const unique = [...new Map(rows.map((r) => [r.id, r])).values()]
       .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
