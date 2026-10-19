@@ -905,5 +905,6 @@ mark.focus { background: color-mix(in srgb, var(--hl-yellow) 85%, transparent); 
 .slink:hover, .sset > summary:hover { background: var(--surface-2); border-radius: var(--r); }
 .sset[open] > summary:hover { border-radius: var(--r) var(--r) 0 0; }
 
-.site-foot { margin-top: 36px; padding: 18px 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: .82rem; color: var(--ink-3); overflow-wrap: anywhere; }
-.site-foot > span:first-child { font-weight: 700; color: var(--ink-2); }
+.site-foot { margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--line); text-align: center; font-size: .74rem; line-height: 1.5; color: var(--ink-3); overflow-wrap: anywhere; }
+.site-foot b { color: var(--ink-2); font-weight: 800; }
+.site-foot .foot-tag { display: block; color: var(--accent); }
