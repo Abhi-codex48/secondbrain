@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp, Link2, Copy, Pencil } from "lucide-react";
+import { Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp, Link2, Copy, Pencil } from "lucide-react";
 import { deleteEverything, deleteOldNewsData, emptyTrash, listMyShares, newsHealth, revokeShare, shareUrl, storageUsage, type Share } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
 import { auth, confirmIdentity, deleteAccount, signOut } from "../lib/firebase";
 import { getName, initials, setName } from "../lib/profile";
-import { applyTheme, currentTheme, PALETTES, type PaletteId } from "../lib/theme";
 import type { Source } from "../lib/types";
 import { fmtDate, fmtTime, relTime } from "../lib/date";
 import { errMsg, Skeleton, useConfirm, useToast } from "../components/ui";
@@ -54,7 +53,6 @@ function Profile() {
 }
 
 export function Settings() {
-  const [theme, setTheme] = useState(currentTheme());
   const [health, setHealth] = useState<{ generatedAt: string | null; sources: Source[] } | null>(null);
   const [usage, setUsage] = useState<Awaited<ReturnType<typeof storageUsage>> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -71,12 +69,8 @@ export function Settings() {
   useEffect(() => {
     setTitle("Settings");
     refresh();
-    const upd = () => setTheme(currentTheme());
-    window.addEventListener("sb-theme", upd);
-    return () => window.removeEventListener("sb-theme", upd);
   }, []);
 
-  const pickTheme = (p: PaletteId) => setTheme(applyTheme(p, theme.mode));
 
   const run = async (key: string, fn: () => Promise<unknown>, done?: string) => {
     setBusy(key);
@@ -140,19 +134,6 @@ export function Settings() {
     <div className="page">
       <h1>Settings</h1>
       <Profile />
-
-      <h3 className="sgroup">Personalise</h3>
-      <Section icon={<Palette size={19} />} title="Appearance" sub={`${PALETTES.find((p) => p.id === theme.palette)?.name ?? ""} · ${theme.mode === "reading" ? "Reading" : theme.mode === "dark" ? "Dark" : "Light"} mode`} color="var(--notes-1)">
-        <div className="palette-pick">
-          {PALETTES.map((p) => (
-            <button key={p.id} className={theme.palette === p.id ? "on" : ""} onClick={() => pickTheme(p.id)}>
-              <span className="sw">{p.swatch.map((c) => <i key={c} style={{ background: c }} />)}</span>
-              {p.name}
-            </button>
-          ))}
-        </div>
-        <p className="tiny">Light, Reading and Dark mode: tap the theme button at the top of any screen.</p>
-      </Section>
 
       <h3 className="sgroup">Content</h3>
       <Section icon={<Newspaper size={19} />} title="News sources" sub={health ? `${health.sources.filter((x) => x.ok).length} of ${health.sources.length} working · updated ${relTime(health.generatedAt)}` : "Checking…"} color="var(--news-2)">

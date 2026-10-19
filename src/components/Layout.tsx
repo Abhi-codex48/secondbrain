@@ -1,7 +1,8 @@
+import { flushSync } from "react-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Home, Newspaper, TrendingUp, Library as LibraryIcon, LayoutGrid, Search, PenLine, Plus, X, Sun, Moon, BookOpen } from "lucide-react";
+import { Home, Newspaper, TrendingUp, Library as LibraryIcon, LayoutGrid, Search, PenLine, NotebookPen, Plus, Check, X, Sun, Moon, BookOpen } from "lucide-react";
 import { go, replace, type Route } from "../lib/router";
-import { applyTheme, currentTheme, type Mode } from "../lib/theme";
+import { applyTheme, currentTheme, PALETTES, type Mode, type PaletteId } from "../lib/theme";
 import { auth } from "../lib/firebase";
 import { getName, initials } from "../lib/profile";
 import { SiteFooter } from "./SiteFooter";
@@ -37,12 +38,15 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
   const [pen, setPen] = useState(false);
   // The New note button steps aside while you scroll down, and comes back on scroll up.
   const [fabHidden, setFabHidden] = useState(false);
+  const [dial, setDial] = useState(false);
+  useEffect(() => setDial(false), [route.path[0]]);
   useEffect(() => {
     let last = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
       if (Math.abs(y - last) < 8) return;
       setFabHidden(y > last && y > 120);
+      if (y > last) setDial(false);
       last = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -65,7 +69,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
   };
   const cur = section(route);
   // The "+ Note" button is hidden where the page already has its own note area.
-  const onEditor = route.path[0] === "note" || route.path[0] === "read";
+  const onNote = route.path[0] === "note";
   return (
     <div className="shell">
       <header className="topbar">
@@ -94,7 +98,6 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
           </form>
           <div className="top-actions">
             <ThemeButton />
-            <button className="icon-btn" onClick={() => setPen(true)} aria-label="Pen mode" title="Pen mode: draw over the screen"><PenLine size={20} /></button>
             <Avatar on={cur === "settings"} />
           </div>
         </div>
@@ -102,12 +105,25 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
 
       <main className="main">{children}<SiteFooter /></main>
 
-      {!onEditor && !pen && (
-        <div className={`fab-stack${fabHidden ? " away" : ""}`}>
-          <button className="fab" onClick={() => go("note/new")} aria-label="New note" title="New note">
-            <Plus size={24} />
-          </button>
-        </div>
+      {!onNote && !pen && (
+        <>
+          {dial && <div className="dial-scrim" onClick={() => setDial(false)} />}
+          <div className={`fab-stack${fabHidden && !dial ? " away" : ""}${dial ? " open" : ""}`}>
+            {dial && (
+              <div className="dial" role="menu">
+                <button role="menuitem" className="dial-item" onClick={() => { setDial(false); setPen(true); }}>
+                  <span>Highlight / draw on screen</span><i className="pen"><PenLine size={19} /></i>
+                </button>
+                <button role="menuitem" className="dial-item" onClick={() => { setDial(false); go("note/new"); }}>
+                  <span>New note</span><i><NotebookPen size={19} /></i>
+                </button>
+              </div>
+            )}
+            <button className="fab" onClick={() => setDial((d) => !d)} aria-label={dial ? "Close" : "Create"} aria-expanded={dial} title="Highlight or new note">
+              <Plus size={24} />
+            </button>
+          </div>
+        </>
       )}
 
       <nav className="bottomnav" aria-label="Main">
@@ -127,24 +143,62 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
 
 const MODES: { m: Mode; label: string; Icon: typeof Sun }[] = [
   { m: "light", label: "Light", Icon: Sun },
-  { m: "reading", label: "Reading (warm, easy on the eyes)", Icon: BookOpen },
+  { m: "reading", label: "Reading", Icon: BookOpen },
   { m: "dark", label: "Dark", Icon: Moon },
 ];
-/** One tap cycles Light → Reading → Dark. */
+/** Switches the theme with a circle that spreads from where you tapped. */
+function revealTheme(e: React.MouseEvent, palette: PaletteId, mode: Mode) {
+  const root = document.documentElement;
+  const d = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } };
+  if (!d.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) { applyTheme(palette, mode); return; }
+  const x = e.clientX || innerWidth - 40, y = e.clientY || 30;
+  root.style.setProperty("--tx", `${x}px`);
+  root.style.setProperty("--ty", `${y}px`);
+  root.style.setProperty("--tr", `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`);
+  root.classList.add("theme-vt");
+  d.startViewTransition(() => flushSync(() => applyTheme(palette, mode))).finished.finally(() => root.classList.remove("theme-vt"));
+}
+
+/** Tap to pick Light, Reading or Dark, and a colour style. */
 function ThemeButton() {
-  const [mode, setMode] = useState<Mode>(() => currentTheme().mode);
+  const [{ mode, palette }, setTheme] = useState(currentTheme);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
-    const upd = () => setMode(currentTheme().mode);
+    const upd = () => setTheme(currentTheme());
     window.addEventListener("sb-theme", upd);
     return () => window.removeEventListener("sb-theme", upd);
   }, []);
   const i = Math.max(0, MODES.findIndex((x) => x.m === mode));
   const { Icon, label } = MODES[i];
-  const next = MODES[(i + 1) % MODES.length];
   return (
-    <button className="icon-btn" onClick={() => setMode(applyTheme(undefined, next.m).mode)} aria-label={`Theme: ${label}. Switch to ${next.label}`} title={`Theme: ${label} (tap for ${next.label.split(" ")[0]})`}>
-      <Icon size={20} />
-    </button>
+    <div className="theme-pick">
+      <button className={`icon-btn${open ? " on" : ""}`} onClick={() => setOpen((o) => !o)} aria-label={`Theme: ${label}`} aria-expanded={open} title="Theme">
+        <Icon key={mode} size={20} className="theme-ic" />
+      </button>
+      {open && (
+        <>
+          <div className="pop-scrim" onClick={() => setOpen(false)} />
+          <div className="theme-panel" role="dialog" aria-label="Theme">
+            <div className="tp-head"><b>Theme</b><span>{PALETTES.find((p) => p.id === palette)?.name} · {label}</span></div>
+            <div className="mode-seg" role="radiogroup" aria-label="Mode" style={{ ["--i" as string]: i }}>
+              <i className="mode-thumb" />
+              {MODES.map(({ m, label: l, Icon: I }) => (
+                <button key={m} role="radio" aria-checked={mode === m} className={mode === m ? "on" : ""} onClick={(e) => mode !== m && revealTheme(e, palette, m)}>
+                  <I size={18} /><span>{l}</span>
+                </button>
+              ))}
+            </div>
+            <div className="orbs" role="radiogroup" aria-label="Colours">
+              {PALETTES.map((p) => (
+                <button key={p.id} role="radio" aria-checked={palette === p.id} aria-label={p.name} title={p.name} className={palette === p.id ? "on" : ""} onClick={(e) => palette !== p.id && revealTheme(e, p.id, mode)} style={{ background: `conic-gradient(from 210deg, ${p.swatch[0]} 0 33%, ${p.swatch[1]} 0 66%, ${p.swatch[2]} 0)` }}>
+                  {palette === p.id && <Check size={16} strokeWidth={3} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

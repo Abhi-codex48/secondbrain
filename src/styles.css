@@ -908,3 +908,40 @@ mark.focus { background: color-mix(in srgb, var(--hl-yellow) 85%, transparent); 
 .site-foot { margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--line); text-align: center; font-size: .74rem; line-height: 1.5; color: var(--ink-3); overflow-wrap: anywhere; }
 .site-foot b { color: var(--ink-2); font-weight: 800; }
 .site-foot .foot-tag { display: block; color: var(--accent); }
+
+/* The + button opens two choices: highlight / draw on screen, or a new note */
+.fab .lucide-plus { transition: transform .25s var(--ease); }
+.fab-stack.open .fab .lucide-plus { transform: rotate(45deg); }
+.dial { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; animation: dial-in .2s var(--ease); }
+@keyframes dial-in { from { opacity: 0; transform: translateY(10px); } }
+.dial-item { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 700; font-size: .92rem; }
+.dial-item span { padding: 7px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); white-space: nowrap; }
+.dial-item i { width: 46px; height: 46px; flex: none; margin-right: 3px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--notes-1), var(--notes-2)); box-shadow: var(--shadow); }
+.dial-item i.pen { background: linear-gradient(135deg, var(--news-1), var(--news-2)); }
+.dial-scrim { position: fixed; inset: 0; z-index: 23; background: color-mix(in srgb, var(--bg) 55%, transparent); }
+
+/* Theme panel under the top-bar button */
+.theme-pick { position: relative; }
+.theme-pick .icon-btn.on { background: var(--accent-soft); color: var(--accent); }
+.theme-ic { animation: ic-spin .45s var(--ease); }
+@keyframes ic-spin { from { transform: rotate(-120deg) scale(.4); opacity: 0; } }
+.pop-scrim { position: fixed; inset: 0; z-index: 40; }
+.theme-panel { position: absolute; z-index: 41; top: calc(100% + 8px); right: -48px; width: 276px; max-width: calc(100vw - 24px); padding: 14px; display: flex; flex-direction: column; gap: 14px; border-radius: 22px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: var(--shadow-lg); transform-origin: calc(100% - 70px) 0; animation: panel-in .32s var(--ease); }
+@keyframes panel-in { from { opacity: 0; transform: translateY(-6px) scale(.9); } }
+.tp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px; }
+.tp-head b { font-family: var(--f-display); font-size: 1.05rem; }
+.tp-head span { font-size: .78rem; color: var(--ink-3); font-weight: 700; white-space: nowrap; }
+.mode-seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 4px; border-radius: 16px; background: var(--surface-2); }
+.mode-thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 12px; background: linear-gradient(135deg, var(--notes-1), var(--news-2)); box-shadow: 0 6px 16px color-mix(in srgb, var(--notes-1) 35%, transparent); transform: translateX(calc(var(--i) * 100%)); transition: transform .4s cubic-bezier(.34, 1.4, .64, 1); }
+.mode-seg button { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 2px 7px; font-size: .76rem; font-weight: 800; color: var(--ink-2); transition: color .25s; }
+.mode-seg button.on { color: #fff; }
+.orbs { display: flex; justify-content: space-between; padding: 2px 4px 4px; }
+.orbs button { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; color: #fff; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--line); transition: transform .3s cubic-bezier(.34, 1.6, .64, 1), box-shadow .2s; }
+.orbs button:hover { transform: scale(1.1); }
+.orbs button.on { transform: scale(1.18); box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--accent), 0 8px 18px rgba(0, 0, 0, .18); }
+.orbs button svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); animation: ic-spin .35s var(--ease); }
+/* The new theme spreads out as a circle from the tap */
+html.theme-vt .topbar, html.theme-vt .bottomnav { view-transition-name: none; }
+html.theme-vt::view-transition-old(root) { animation: none; }
+html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bezier(.4, 0, .2, 1); }
+@keyframes theme-reveal { from { clip-path: circle(0 at var(--tx) var(--ty)); } to { clip-path: circle(var(--tr) at var(--tx) var(--ty)); } }

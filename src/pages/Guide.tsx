@@ -22,7 +22,7 @@ export const GUIDE: Part[] = [
     steps: [
       "Quick buttons: New note, Write by hand, To-do, How it works.",
       "Tap the logo or the Home tab again to jump back to the top of any page.",
-      "Top bar: the sun / book / moon button switches Light, Reading (warm, easy on the eyes) and Dark mode; your picture opens Settings.",
+      "Top bar: the theme button picks Light, Reading (warm, easy on the eyes) or Dark, and a colour style; your picture opens Settings. The + button at the bottom: Highlight / draw on screen, or New note.",
     ],
   },
   {
@@ -100,7 +100,7 @@ export const GUIDE: Part[] = [
     icon: Highlighter, color: "var(--more-2)", title: "Pen mode",
     lead: "Write and highlight on any screen of the app.",
     steps: [
-      "Tap the orange pen. Draw with one finger; scroll with two fingers (or the hand button).",
+      "Tap the + button at the bottom right → Highlight / draw on screen. Draw with one finger; scroll with two fingers (or the hand button).",
       "Nothing is saved until you press Save; then the part of the page with your marks becomes a note.",
     ],
   },
@@ -144,7 +144,7 @@ export const GUIDE: Part[] = [
     icon: Settings, color: "var(--ink-2)", title: "Settings",
     lead: "Tap your picture at the top. Everything is grouped, tap a row to open it.",
     steps: [
-      "Profile: change the name you're greeted by. Personalise: colour theme.",
+      "Profile: change the name you're greeted by.",
       "Content: news sources and your shared links.",
       "Download a backup or Markdown copy, restore a backup, free up space.",
       "Delete all your data or your whole account at any time.",
