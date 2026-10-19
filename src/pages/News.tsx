@@ -203,7 +203,7 @@ export function News() {
 
       {following.length > 0 && (
         <div className="chips" aria-label="Topics you follow">
-          <a className="chip" href="#/more?t=reading" title="Manage followed topics"><Hash size={14} />Following</a>
+          <a className="chip" href="#/more?t=progress" title="Manage followed topics"><Hash size={14} />Following</a>
           {following.map((k) => (
             <button key={k} className={`chip ${q.toLowerCase() === k.toLowerCase() ? "on" : ""}`} onClick={() => setQ(q.toLowerCase() === k.toLowerCase() ? "" : k)} aria-pressed={q.toLowerCase() === k.toLowerCase()}>{k}</button>
           ))}

@@ -1,26 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { Flame, Brain, Hash, BookmarkCheck, Highlighter, X, Plus, CloudOff, Trash2, ExternalLink, RotateCcw } from "lucide-react";
-import { deleteHighlight, followMatches, getFollowing, listHighlights, listNews, readingDays, readingList, setFollowing, type Highlight } from "../lib/api";
+import { deleteHighlight, followMatches, getFollowing, listHighlights, listNews, readingDays, readingList, setFollowing, unsaveArticle, type Highlight } from "../lib/api";
 import type { NewsItem } from "../lib/types";
 import { addDays, fmtDate, istDay } from "../lib/date";
 import { go } from "../lib/router";
 import { buildQuiz, type Question } from "../lib/quiz";
 import { errMsg, Skeleton, useToast } from "../components/ui";
 
-/** More → Reading: streak, daily quiz, followed topics, reading list and highlights. */
+/** More → Progress: streak, daily quiz and followed topics. */
 export function ReadingTools() {
   return (
     <div className="rtools">
       <Streak />
       <Quiz />
       <Following />
-      <ReadingList />
-      <Highlights />
     </div>
   );
 }
 
-function Panel({ icon, title, color, extra, children }: { icon: React.ReactNode; title: string; color: string; extra?: React.ReactNode; children: React.ReactNode }) {
+export function Panel({ icon, title, color, extra, children }: { icon: React.ReactNode; title: string; color: string; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="rpanel" style={{ ["--r" as string]: color }}>
       <header><span className="ric">{icon}</span><h2>{title}</h2>{extra && <span className="grow" />}{extra}</header>
@@ -149,19 +147,25 @@ function Following() {
   );
 }
 
-function ReadingList() {
+export function ReadingList() {
   const [items, setItems] = useState<(NewsItem & { offline: boolean })[] | null>(null);
+  const toast = useToast();
   useEffect(() => { readingList().then(setItems).catch(() => setItems([])); }, []);
   return (
     <Panel icon={<BookmarkCheck size={18} />} title="Reading list" color="var(--news-2)" extra={items && <span className="tiny">{items.length} saved</span>}>
       {items === null ? <Skeleton lines={3} /> : items.length === 0 ? <p className="tiny">Tap the bookmark on any headline to save it here. Articles you open are kept on this device so you can read them offline.</p> : (
         <ul className="rlist">
-          {items.slice(0, 30).map((n) => (
-            <li key={n.id}>
+          {items.map((n) => (
+            <li key={n.id} className="rrow">
               <a href={`#/read/${n.id}`}>
                 <span className="t">{n.title}</span>
                 <span className="tiny">{n.source_name}{n.published_at ? ` · ${fmtDate(n.published_at)}` : ""}{n.offline ? <span className="off"><CloudOff size={11} /> readable offline</span> : null}</span>
               </a>
+              <button className="icon-btn sm" aria-label={`Remove "${n.title}" from your reading list`} title="Remove" onClick={async () => {
+                setItems((xs) => xs?.filter((x) => x.id !== n.id) ?? null);
+                await unsaveArticle(n.id).catch((e) => toast(errMsg(e), { bad: true }));
+                toast("Removed from your reading list");
+              }}><Trash2 size={15} /></button>
             </li>
           ))}
         </ul>
@@ -170,7 +174,7 @@ function ReadingList() {
   );
 }
 
-function Highlights() {
+export function Highlights() {
   const [items, setItems] = useState<Highlight[] | null>(null);
   const [q, setQ] = useState("");
   const toast = useToast();

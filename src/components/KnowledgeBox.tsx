@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookmarkPlus, Check, ChevronDown, ExternalLink, Globe2 } from "lucide-react";
-import { saveNote } from "../lib/api";
+import { addBookmark } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { errMsg, useToast } from "./ui";
 
@@ -23,7 +23,6 @@ const CATS: Record<string, [string, string]> = {
   "Sports": ["Sports", "#d4a106"],
 };
 const cat = (c: string): [string, string] => CATS[c] ?? [c, "var(--accent)"];
-const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 type Tab = "top" | "events" | "trending";
 
 /**
@@ -49,20 +48,22 @@ export function KnowledgeBox() {
   const cats = useMemo(() => [...new Set((b?.events ?? []).map((e) => e.category))], [b]);
   if (!b || !(b.top.length || b.events.length || b.trending.length)) return null;
 
-  const save = (key: string, title: string, html: string, url: string) => {
+  // Saved items go to Library → Bookmarks (your notes stay for your own writing).
+  const save = async (key: string, bm: { title: string; url: string; text: string; source: string; kind: string }) => {
     try {
-      saveNote({ title, body_html: html, source_url: url || null, source_name: "Wikipedia" });
+      await addBookmark(bm);
       setSaved((s) => new Set(s).add(key));
-      toast("Saved to your notes");
+      toast("Saved to Library → Bookmarks");
     } catch (e) {
       toast(errMsg(e), { bad: true });
     }
   };
-  const SaveBtn = ({ k, title, html, url }: { k: string; title: string; html: string; url: string }) => (
-    <button className="icon-btn sm" onClick={() => save(k, title, html, url)} disabled={saved.has(k)} aria-label={`Save "${title}" to notes`} title="Save to notes">
+  const SaveBtn = ({ k, ...bm }: { k: string; title: string; url: string; text: string; source: string; kind: string }) => (
+    <button className="icon-btn sm" onClick={() => save(k, bm)} disabled={saved.has(k)} aria-label={`Bookmark "${bm.title}"`} title="Bookmark">
       {saved.has(k) ? <Check size={18} color="var(--ok)" /> : <BookmarkPlus size={18} />}
     </button>
   );
+
 
   const events = b.events.filter((e) => !filter || e.category === filter);
   const LIMIT = 6;
@@ -96,7 +97,7 @@ export function KnowledgeBox() {
                 {s.background && <p><span className="kbg">Background</span>{s.background}</p>}
                 {s.url && <a className="ksrc" href={s.url} target="_blank" rel="noopener noreferrer">More about {s.title} <ExternalLink size={12} /></a>}
               </div>
-              <SaveBtn k={s.text} title={s.text.slice(0, 120)} url={s.url} html={`<p><b>${esc(s.text)}</b></p>${s.background ? `<p>${esc(s.background)}</p>` : ""}<p>Source: <a href="${esc(s.url)}">Wikipedia, In the news</a></p>`} />
+              <SaveBtn k={s.text} title={s.text} url={s.url} text={s.background} source="Wikipedia, In the news" kind="World briefing" />
             </li>
           ))}
         </ul>
@@ -122,7 +123,7 @@ export function KnowledgeBox() {
                     <span className="ksrcs">Source: {e.sources.map((s, j) => <a key={j} href={s.url} target="_blank" rel="noopener noreferrer">{s.name}<ExternalLink size={11} /></a>)}</span>
                   )}
                 </div>
-                <SaveBtn k={e.text} title={(e.topic || cat(e.category)[0]).slice(0, 120)} url={e.sources[0]?.url ?? ""} html={`<p>${esc(e.text)}</p><p>Source: ${e.sources.map((s) => `<a href="${esc(s.url)}">${esc(s.name)}</a>`).join(", ") || "Wikipedia, Current events"}</p>`} />
+                <SaveBtn k={e.text} title={e.text} url={e.sources[0]?.url ?? ""} text={e.topic} source={e.sources.map((x) => x.name).join(", ") || "Wikipedia, Current events"} kind={cat(e.category)[0]} />
               </li>
             ))}
           </ul>
@@ -139,7 +140,7 @@ export function KnowledgeBox() {
                 <p>{t.text}</p>
                 <span className="ksrcs">{t.views.toLocaleString("en-IN")} reads yesterday · <a href={t.url} target="_blank" rel="noopener noreferrer">Wikipedia<ExternalLink size={11} /></a></span>
               </div>
-              <SaveBtn k={t.title} title={t.title} url={t.url} html={`<p>${esc(t.text)}</p><p>Source: <a href="${esc(t.url)}">Wikipedia</a></p>`} />
+              <SaveBtn k={t.title} title={t.title} url={t.url} text={t.text} source="Wikipedia" kind="Trending" />
             </li>
           ))}
         </ul>

@@ -21,7 +21,7 @@ async function define(word: string): Promise<Sense[]> {
 
 /**
  * The article's text, with your highlights marked. Select any passage to
- * highlight it (collected under More → Reading) or look up a word.
+ * highlight it (collected under Library → Highlights) or look up a word.
  */
 export function ArticleText({ item }: { item: NewsItem }) {
   const box = useRef<HTMLDivElement>(null);
@@ -56,7 +56,7 @@ export function ArticleText({ item }: { item: NewsItem }) {
       setMarks((m) => [h, ...m]);
       window.getSelection()?.removeAllRanges();
       setSel("");
-      toast("Highlighted. Find it under More → Reading.");
+      toast("Highlighted. Find it in Library → Highlights.");
     } catch (e) {
       toast(errMsg(e), { bad: true });
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, FolderOpen, LayoutGrid, ListTodo, Newspaper, PenLine, Plus, CircleHelp } from "lucide-react";
+import { ArrowRight, Library as LibraryIcon, ListTodo, Newspaper, PenLine, Plus, CircleHelp, TrendingUp } from "lucide-react";
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
@@ -27,7 +27,7 @@ export function Home() {
       <nav className="quick" aria-label="Quick actions">
         <a href="#/note/new" style={{ ["--q" as string]: "var(--notes-1)" }}><Plus size={18} />New note</a>
         <a href="#/draw/new/new" style={{ ["--q" as string]: "var(--news-1)" }}><PenLine size={18} />Write by hand</a>
-        <a href="#/more?t=todo" style={{ ["--q" as string]: "var(--more-1)" }}><ListTodo size={18} />To-do</a>
+        <a href="#/library?t=todo" style={{ ["--q" as string]: "var(--more-1)" }}><ListTodo size={18} />To-do</a>
         <a href="#/guide" style={{ ["--q" as string]: "var(--accent)" }}><CircleHelp size={18} />How it works</a>
       </nav>
 
@@ -38,16 +38,16 @@ export function Home() {
           <p>Every section of 13 newspapers and PIB, updated hourly. Full articles, key points, and any past date.</p>
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
-        <a className="tile t-notes" href="#/notes">
-          <span className="ic"><FolderOpen size={26} /></span>
-          <div className="head"><h2>Notes</h2>{c && <span className="count">{c.notes} notes</span>}</div>
-          <p>Your private folders. Type, highlight, or write by hand like on paper.</p>
+        <a className="tile t-markets" href="#/markets">
+          <span className="ic"><TrendingUp size={26} /></span>
+          <div className="head"><h2>Markets</h2></div>
+          <p>World stock markets, commodities and currencies, with the news behind each move.</p>
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
-        <a className="tile t-more" href="#/more">
-          <span className="ic"><LayoutGrid size={26} /></span>
-          <div className="head"><h2>More</h2>{c && <span className="count">{c.todos} to-do</span>}</div>
-          <p>To-do list, what you studied today, and anything you recorded on any date.</p>
+        <a className="tile t-notes" href="#/notes">
+          <span className="ic"><LibraryIcon size={26} /></span>
+          <div className="head"><h2>Library</h2>{c && <span className="count">{c.notes} notes</span>}</div>
+          <p>Everything you keep: notes, saved articles, bookmarks, highlights and to-do.</p>
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
       </div>

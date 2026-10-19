@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   BookOpen, BookMarked, FlaskConical, TrendingUp, Landmark, Lightbulb, Leaf, Type, Building2, Scale, ScrollText, MapPinned, IndianRupee,
-  Globe2, HeartPulse, Banknote, Handshake, Flag, ExternalLink, ChevronDown, type LucideIcon,
+  Globe2, HeartPulse, Banknote, Handshake, Flag, ExternalLink, ChevronDown, BookmarkPlus, Check, type LucideIcon,
 } from "lucide-react";
 import { relTime } from "../lib/date";
+import { addBookmark } from "../lib/api";
+import { useToast } from "./ui";
 
 interface ReadItem { title: string; url: string; source: string; text: string; date: string | null }
 interface Box { key: string; title: string; note: string; items: ReadItem[] }
@@ -54,6 +56,18 @@ export function Explore() {
 
 function XBox({ b, i }: { b: Box; i: number }) {
   const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const toast = useToast();
+  const keep = async (it: ReadItem) => {
+    await addBookmark({ title: it.title, url: it.url, text: it.text, source: it.source, kind: b.title }).catch(() => {});
+    setSaved((s) => new Set(s).add(it.url + it.title));
+    toast(`Saved to Library → Bookmarks (${b.title})`);
+  };
+  const Keep = ({ it }: { it: ReadItem }) => (
+    <button className="icon-btn sm xkeep" onClick={() => keep(it)} disabled={saved.has(it.url + it.title)} aria-label={`Bookmark "${it.title}"`} title="Bookmark">
+      {saved.has(it.url + it.title) ? <Check size={16} color="var(--ok)" /> : <BookmarkPlus size={16} />}
+    </button>
+  );
   const [Icon, color] = LOOK[b.key] ?? [BookOpen, "var(--accent)"];
   const [first, ...rest] = b.items;
   const more = open ? rest : rest.slice(0, 2);
@@ -63,19 +77,23 @@ function XBox({ b, i }: { b: Box; i: number }) {
         <span className="xic"><Icon size={18} /></span>
         <div className="xt"><h3>{b.title}</h3><span>{b.note}</span></div>
       </header>
-      <a className="xlead" href={first.url} target="_blank" rel="noopener noreferrer">
-        <b>{first.title}</b>
-        {first.text && <p>{first.text}</p>}
-        <span className="xsrc">{first.source}{first.date ? ` · ${relTime(first.date)}` : ""} <ExternalLink size={11} /></span>
-      </a>
+      <div className="xrow xleadrow">
+        <a className="xlead" href={first.url} target="_blank" rel="noopener noreferrer">
+          <b>{first.title}</b>
+          {first.text && <p>{first.text}</p>}
+          <span className="xsrc">{first.source}{first.date ? ` · ${relTime(first.date)}` : ""} <ExternalLink size={11} /></span>
+        </a>
+        <Keep it={first} />
+      </div>
       {more.length > 0 && (
         <ul>
           {more.map((it) => (
-            <li key={it.url + it.title}>
+            <li key={it.url + it.title} className="xrow">
               <a href={it.url} target="_blank" rel="noopener noreferrer">
                 <span className="xtitle">{it.title}</span>
                 <span className="xsrc">{it.source}{it.date ? ` · ${relTime(it.date)}` : ""}</span>
               </a>
+              <Keep it={it} />
             </li>
           ))}
         </ul>

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import {
-  LogIn, Home, Newspaper, NotebookPen, PenLine, Highlighter, LayoutGrid, Search, Settings, ShieldCheck, Globe2, Compass, FileDown, WifiOff, type LucideIcon,
+  LogIn, Home, Newspaper, NotebookPen, PenLine, Highlighter, LayoutGrid, Search, Settings, ShieldCheck, Globe2, Compass, FileDown, WifiOff, TrendingUp, Library as LibraryIcon, type LucideIcon,
 } from "lucide-react";
 import { setTitle } from "../components/Layout";
 
@@ -18,9 +18,9 @@ export const GUIDE: Part[] = [
   },
   {
     icon: Home, color: "var(--news-1)", title: "Home",
-    lead: "Three doors (News, Notes, More), quick buttons, and things worth reading today.",
+    lead: "Three doors (News, Markets, Library), quick buttons, and things worth reading today.",
     steps: [
-      "Quick buttons: New note, Write by hand, To-do.",
+      "Quick buttons: New note, Write by hand, To-do, How it works.",
       "Tap the logo or the Home tab again to jump back to the top of any page.",
     ],
   },
@@ -31,7 +31,7 @@ export const GUIDE: Part[] = [
       "Top stories with plain background on each one.",
       "World events by type: wars and conflicts, economy and markets, politics, science, disasters. Each links to the outlet it cites (Reuters, AP, BBC…).",
       "Trending: what the world is reading. On this day: events from history.",
-      "Tap the bookmark on any item to save it to your notes.",
+      "Tap the bookmark on any item to keep it in Library → Bookmarks.",
     ],
   },
   {
@@ -41,6 +41,7 @@ export const GUIDE: Part[] = [
       "Reading: long reads, books, science, economy explained, history and stories, ideas, environment, word of the day.",
       "India: government decisions, courts, Parliament and laws, states and cities, RBI.",
       "World: United Nations, global health, global economy, diplomacy and summits, a country to know.",
+      "Tap the bookmark next to any item (a book, a long read, a court ruling…) to keep it in Library → Bookmarks.",
     ],
   },
   {
@@ -56,8 +57,27 @@ export const GUIDE: Part[] = [
     ],
   },
   {
-    icon: NotebookPen, color: "var(--notes-1)", title: "Notes",
-    lead: "Your repository, in folders like on a computer.",
+    icon: TrendingUp, color: "var(--ok)", title: "Markets",
+    lead: "Stock markets in India and the world, commodities, currencies and Bitcoin. Updated every hour.",
+    steps: [
+      "Each card shows the price and the day's change, green for up and red for down.",
+      "Why it moved: today's headlines from the newspapers that mention that market. Tap one to read it.",
+      "Prices are delayed (Yahoo Finance, Stooq). For reading, not investment advice.",
+    ],
+  },
+  {
+    icon: LibraryIcon, color: "var(--notes-1)", title: "Library",
+    lead: "Everything you keep, in one place and each thing only once.",
+    steps: [
+      "Notes: your own writing and handwriting, in folders.",
+      "Articles: headlines you bookmarked, marked when readable offline. Remove any with the bin icon.",
+      "Bookmarks: what you saved from the World briefing and Explore, grouped by kind.",
+      "Highlights: passages you highlighted while reading. To-do: your task list.",
+    ],
+  },
+  {
+    icon: NotebookPen, color: "var(--notes-1)", title: "Writing notes",
+    lead: "Notes work like folders on a computer.",
     steps: [
       "Folders with colours; filters for kind, source and date; live search.",
       "Writing: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images.",
@@ -87,17 +107,17 @@ export const GUIDE: Part[] = [
     icon: FileDown, color: "var(--notes-2)", title: "Export as PDF",
     lead: "Keep or share your work.",
     steps: [
-      "Notes → Export PDF saves the folder (or what you've filtered) as one file with a contents page.",
+      "Library → Notes → Export PDF saves the folder (or what you've filtered) as one file with a contents page.",
       "In a note, the download icon exports that note; in the drawing studio, it exports every page.",
       "Choose Save as PDF in the print screen that opens.",
     ],
   },
   {
     icon: LayoutGrid, color: "var(--more-1)", title: "More",
-    lead: "To-do list, what you studied today, anything on any date, and your reading.",
+    lead: "What you studied today, anything on any date, and your progress.",
     steps: [
-      "Add tasks, tick them off, and look back at any day's notes, news and tasks.",
-      "Reading tab: your reading streak, a 5-question daily quiz from the world briefing, topics you follow, your reading list (marked when readable offline) and every passage you highlighted.",
+      "Today and By date: look back at any day's notes, news and finished tasks.",
+      "Progress: your reading streak, a 5-question daily quiz from the World briefing, and topics you follow (their headlines also show as chips on News).",
       "While reading an article, select text to Highlight it or Define a word.",
     ],
   },

@@ -7,7 +7,7 @@ import { ConfirmProvider, ToastProvider } from "./components/ui";
 import { Auth, NotConfigured } from "./pages/Auth";
 import { Home } from "./pages/Home";
 import { News } from "./pages/News";
-import { Notes } from "./pages/Notes";
+import { Library } from "./pages/Library";
 import { More } from "./pages/More";
 import { Search } from "./pages/Search";
 
@@ -15,6 +15,7 @@ import { Search } from "./pages/Search";
 const Reader = lazy(() => import("./pages/Reader").then((m) => ({ default: m.Reader })));
 const NoteEditor = lazy(() => import("./pages/NoteEditor").then((m) => ({ default: m.NoteEditor })));
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const Markets = lazy(() => import("./pages/Markets").then((m) => ({ default: m.Markets })));
 const Guide = lazy(() => import("./pages/Guide").then((m) => ({ default: m.Guide })));
 const Draw = lazy(() => import("./pages/Draw").then((m) => ({ default: m.Draw })));
 
@@ -28,7 +29,9 @@ function Pages() {
   switch (p) {
     case "news": page = <News />; break;
     case "read": page = <Reader key={id} id={id} />; break;
-    case "notes": page = <Notes route={route} />; break;
+    case "notes":
+    case "library": page = <Library route={route} />; break;
+    case "markets": page = <Markets />; break;
     case "note": page = <NoteEditor key={id} id={id ?? "new"} route={route} />; break;
     case "more": page = <More route={route} />; break;
     case "search": page = <Search route={route} />; break;

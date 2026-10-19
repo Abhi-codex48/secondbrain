@@ -359,16 +359,40 @@ export async function readingDays(): Promise<Set<string>> {
   return days;
 }
 
-/** Saved articles, with whether their full text is kept on this device for offline reading. */
+/** Articles you bookmarked (only those), with whether their full text is kept for offline reading. */
 export async function readingList(): Promise<(NewsItem & { offline: boolean })[]> {
-  const [saved, arts] = await Promise.all([listNews({ status: "saved" }), getDocs(col("articles")).catch(() => null)]);
-  const withText = new Set(arts?.docs.filter((d) => (d.data().text ?? "").length > 200).map((d) => d.id) ?? []);
-  const ids = new Set(saved.map((n) => n.id));
-  // Saved links and older saved items that have left the news list.
-  const extra = (arts?.docs ?? []).filter((d) => !ids.has(d.id) && (d.data().text ?? "").length > 200 && (d.data().item?.source === "link"))
-    .map((d) => ({ ...toItem(d.data().item, undefined, d.data().text), status: "saved" as const }));
-  return [...saved, ...extra].map((n) => ({ ...n, offline: withText.has(n.id) }));
+  const [st, f, arts] = await Promise.all([loadStates(), loadNewsFile().catch(() => null), getDocs(col("articles")).catch(() => null)]);
+  const docs = new Map((arts?.docs ?? []).map((d) => [d.id, d.data() as { text?: string; item?: NewsFile["items"][number]; saved_at?: string }]));
+  const inFile = new Map((f?.items ?? []).map((i) => [i.id, i]));
+  const out: (NewsItem & { offline: boolean })[] = [];
+  for (const [id, s] of st) {
+    if (s.status !== "saved") continue;
+    const raw = inFile.get(id) ?? docs.get(id)?.item;
+    if (!raw) continue;
+    const text = docs.get(id)?.text ?? null;
+    out.push({ ...toItem(raw, s, text), offline: (text ?? "").length > 200 });
+  }
+  return out.sort((a, b) => (b.read_at ?? "").localeCompare(a.read_at ?? ""));
 }
+/** Takes an article off your reading list (and drops a pasted link's private copy). */
+export async function unsaveArticle(id: string) {
+  await setNewsStatus(id, "read");
+  if (id.startsWith("link-")) await deleteDoc(doc(col("articles"), id)).catch(() => {});
+}
+
+// ---------- bookmarks: anything worth keeping from the briefing and Explore ----------
+export interface Bookmark { id: string; title: string; url: string; source: string; text: string; kind: string; created_at: string }
+export async function addBookmark(b: Omit<Bookmark, "id" | "created_at">): Promise<Bookmark> {
+  const full = { ...b, id: (await sha1(b.url || b.title)).slice(0, 20), created_at: now() };
+  void setDoc(doc(col("bookmarks"), full.id), full).catch(() => {});
+  return full;
+}
+export async function listBookmarks(): Promise<Bookmark[]> {
+  const s = await getDocsFromCache(col("bookmarks")).catch(() => null) ?? await getDocs(col("bookmarks"));
+  const fresh = s.empty ? await getDocs(col("bookmarks")).catch(() => s) : s;
+  return fresh.docs.map((d) => d.data() as Bookmark).sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+export const deleteBookmark = (id: string) => deleteDoc(doc(col("bookmarks"), id));
 
 // ---------- news archive (one file per day, last 90 days) ----------
 const archive = new Map<string, Promise<NewsFile["items"]>>();
@@ -505,7 +529,7 @@ export async function homeCounts() {
 }
 
 // ---------- storage, backup and clean-up ----------
-const TABLES = ["folders", "notes", "todos", "newsState", "articles", "highlights", "prefs"] as const;
+const TABLES = ["folders", "notes", "todos", "newsState", "articles", "highlights", "prefs", "bookmarks"] as const;
 
 export async function exportAll(): Promise<Record<string, Record<string, unknown>[]>> {
   await syncNotes();

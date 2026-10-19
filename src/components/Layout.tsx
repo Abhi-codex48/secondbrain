@@ -1,19 +1,20 @@
 import { useState, type ReactNode } from "react";
-import { Home, Newspaper, FolderOpen, LayoutGrid, Search, Settings, PenLine, Plus } from "lucide-react";
+import { Home, Newspaper, TrendingUp, Library as LibraryIcon, LayoutGrid, Search, Settings, PenLine, Plus } from "lucide-react";
 import { go, type Route } from "../lib/router";
 import { DrawOverlay } from "./DrawOverlay";
 
 const NAV = [
   { id: "", label: "Home", icon: Home, c1: "var(--accent)", soft: "var(--accent-soft)" },
   { id: "news", label: "News", icon: Newspaper, c1: "var(--news-2)", soft: "var(--news-soft)" },
-  { id: "notes", label: "Notes", icon: FolderOpen, c1: "var(--notes-1)", soft: "var(--notes-soft)" },
+  { id: "markets", label: "Markets", icon: TrendingUp, c1: "var(--ok)", soft: "var(--ok-soft)" },
+  { id: "notes", label: "Library", icon: LibraryIcon, c1: "var(--notes-1)", soft: "var(--notes-soft)" },
   { id: "more", label: "More", icon: LayoutGrid, c1: "var(--more-1)", soft: "var(--more-soft)" },
 ];
 
 const section = (r: Route) => {
   const p = r.path[0] ?? "";
   if (p === "read") return "news";
-  if (p === "note") return "notes";
+  if (p === "note" || p === "library") return "notes";
   return p;
 };
 
