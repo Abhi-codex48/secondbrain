@@ -69,6 +69,8 @@ export interface Source {
   ok: boolean;
   count: number;
   fallback: boolean;
+  /** Where headlines came from when the paper's own feeds didn't answer. */
+  via?: string;
   /** Couldn't be reached this hour; its earlier headlines are still shown. */
   stale?: boolean;
   error?: string;

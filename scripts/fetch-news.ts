@@ -5,7 +5,7 @@
 // published; article text is never copied.
 import { writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { DEFAULT_SOURCES, googleNewsFeed } from "../shared/sources.ts";
+import { DEFAULT_SOURCES, bingNewsFeed, googleNewsFeed, unwrapBing } from "../shared/sources.ts";
 import { canonicalUrl, parseFeed, type FeedItem } from "../shared/rss.ts";
 import { SECTIONS, TOP_STORIES, sectionFromUrl } from "../shared/sections.ts";
 
@@ -78,27 +78,29 @@ async function main() {
     }
   }
 
-  const report: { key: string; name: string; ok: boolean; count: number; fallback: boolean; stale?: boolean; error?: string }[] = [];
+  const report: { key: string; name: string; ok: boolean; count: number; fallback: boolean; via?: string; stale?: boolean; error?: string }[] = [];
   const fresh: NewsItem[] = [];
 
   await Promise.all(DEFAULT_SOURCES.map(async (src) => {
     const rows: NewsItem[] = [];
     const errors: string[] = [];
     const cap = src.feeds.length <= 1 ? PER_FALLBACK : PER_SECTION;
-    const collect = (items: FeedItem[], section: string | null, viaGoogle: boolean) => {
+    const collect = (items: FeedItem[], section: string | null, viaSearch: boolean) => {
       const perSection = new Map<string, number>();
-      const limit = viaGoogle ? PER_FALLBACK : cap;
+      const limit = viaSearch ? PER_FALLBACK : cap;
       for (const it of items) {
         if (it.publishedAt && now - Date.parse(it.publishedAt) > MAX_AGE_MS) continue;
-        const title = viaGoogle ? it.title.replace(/\s+-\s+[^-]+$/, "") : it.title;
+        // Google News hides the paper's link and adds " - Paper" to titles; Bing gives the real link.
+        const google = it.url.includes("news.google.");
+        const title = google ? it.title.replace(/\s+-\s+[^-]+$/, "") : it.title;
         if (!title || ADS.test(title)) continue;
-        const url = viaGoogle ? it.url : canonicalUrl(it.url);
+        const url = google ? it.url : canonicalUrl(it.url);
         // The paper's own section: from the article's address, else from the feed.
-        const sec = (viaGoogle ? null : sectionFromUrl(url)) ?? section ?? TOP_STORIES;
+        const sec = (google ? null : sectionFromUrl(url)) ?? section ?? TOP_STORIES;
         const n = perSection.get(sec) ?? 0;
         if (n >= limit) continue;
         perSection.set(sec, n + 1);
-        const description = viaGoogle ? "" : it.description.slice(0, 240);
+        const description = viaSearch ? "" : it.description.slice(0, 240);
         rows.push({
           id: idOf(url), url, title, description, source: src.key, sourceName: src.name,
           publishedAt: it.publishedAt, fetchedAt, topics: [sec],
@@ -120,20 +122,32 @@ async function main() {
     });
     if (failed.length) errors.push(`Feeds not working: ${failed.join(", ")}`);
     let fallback = false;
+    let via: string | undefined;
+    // No feed of its own answered: try Bing News, then Google News (headlines only).
     if (!ownOk) {
       fallback = true;
       try {
-        const g = googleNewsFeed(src.site);
-        collect(parseFeed(await getGoogle(g)), null, true);
+        const items = parseFeed(await get(bingNewsFeed(src.site)))
+          .map((it) => ({ ...it, url: unwrapBing(it.url) }))
+          .filter((it) => it.url.includes(src.site));
+        if (!items.length) throw new Error("no headlines");
+        collect(items, null, true);
+        via = "Bing News";
       } catch (e) {
-        errors.push(`Google News fallback: ${(e as Error).message}`);
+        errors.push(`Bing News: ${(e as Error).message}`);
+        try {
+          collect(parseFeed(await getGoogle(googleNewsFeed(src.site))), null, true);
+          via = "Google News";
+        } catch (e2) {
+          errors.push(`Google News: ${(e2 as Error).message}`);
+        }
       }
     }
     const unique = [...new Map(rows.map((r) => [r.id, r])).values()]
       .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
       .slice(0, PER_SOURCE);
     fresh.push(...unique);
-    report.push({ key: src.key, name: src.name, ok: unique.length > 0, count: unique.length, fallback, error: errors.join(" · ").slice(0, 400) || undefined });
+    report.push({ key: src.key, name: src.name, ok: unique.length > 0, count: unique.length, fallback, via, error: errors.join(" · ").slice(0, 400) || undefined });
   }));
 
   // Keep the first time we saw each article, so "Today" stays stable across runs.
@@ -161,7 +175,7 @@ async function main() {
   if (items.length === 0) throw new Error("No headlines from any source and no previous list; keeping the live site as it is.");
   writeFileSync(out, JSON.stringify({ generatedAt: fetchedAt, sources: report.sort((a, b) => a.name.localeCompare(b.name)), items }));
   console.log(`news.json: ${items.length} items (${fresh.length} fetched now)`);
-  for (const r of report) console.log(`${r.ok ? "OK  " : "FAIL"} ${r.name}: ${r.count}${r.fallback ? " (Google News)" : ""}${r.stale ? " (kept from last update)" : ""}${r.error ? ` — ${r.error}` : ""}`);
+  for (const r of report) console.log(`${r.ok ? "OK  " : "FAIL"} ${r.name}: ${r.count}${r.via ? ` (${r.via})` : ""}${r.stale ? " (kept from last update)" : ""}${r.error ? ` — ${r.error}` : ""}`);
 }
 
 main().catch((e) => {

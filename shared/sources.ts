@@ -91,6 +91,20 @@ export const DEFAULT_SOURCES: SourceDef[] = [
   },
 ];
 
+/** Bing News search for one site: a second route when Google News refuses. */
+export function bingNewsFeed(site: string): string {
+  return `https://www.bing.com/news/search?q=${encodeURIComponent(`site:${site}`)}&format=rss&mkt=en-IN`;
+}
+
+/** Bing wraps each link in a click-tracking address; this returns the paper's own link. */
+export function unwrapBing(url: string): string {
+  try {
+    const u = new URL(url);
+    if (/bing\.com$/i.test(u.hostname) && u.searchParams.get("url")) return u.searchParams.get("url")!;
+  } catch { /* not a URL */ }
+  return url;
+}
+
 export function googleNewsFeed(site: string): string {
   const q = encodeURIComponent(`site:${site} when:1d`);
   return `https://news.google.com/rss/search?q=${q}&hl=en-IN&gl=IN&ceid=IN:en`;

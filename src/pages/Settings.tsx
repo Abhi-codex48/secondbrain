@@ -145,7 +145,7 @@ export function Settings() {
               <div key={s.key} className="set-row">
                 <div className="grow stack" style={{ gap: 2 }}>
                   <b>{s.name}</b>
-                  <span className="tiny">{s.stale ? `${s.count} earlier headlines · couldn't be reached this hour, retried automatically` : s.ok ? `${s.count} headlines${s.fallback ? " · via Google News" : ""}` : <span style={{ color: "var(--warn)" }}>Couldn't be reached this hour · retried automatically every hour</span>}</span>
+                  <span className="tiny">{s.stale ? `${s.count} earlier headlines · couldn't be reached this hour, retried automatically` : s.ok ? `${s.count} headlines${s.fallback ? ` · via ${s.via ?? "Google News"}` : ""}` : <span style={{ color: "var(--warn)" }}>Couldn't be reached this hour · retried automatically every hour</span>}</span>
                 </div>
                 {s.ok && !s.stale ? <CheckCircle2 size={18} color="var(--ok)" /> : <AlertTriangle size={18} color="var(--warn)" />}
               </div>
