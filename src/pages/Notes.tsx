@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FolderPlus, Search, Pin, PinOff, Trash2, RotateCcw, Settings2, Inbox, Layers, ListChecks, PenLine, Newspaper, NotebookPen } from "lucide-react";
+import { FolderPlus, Search, Pin, PinOff, Trash2, RotateCcw, Settings2, Inbox, Layers, ListChecks, PenLine, Newspaper, NotebookPen, FileDown } from "lucide-react";
+import { exportNotesPdf } from "../lib/pdf";
 import { createFolder, deleteFolder, deleteNoteForever, emptyTrash, folderCounts, listFolders, listNotes, noteSources, restoreNote, saveNote, updateFolder, type NoteFilter } from "../lib/api";
 import type { Folder, Note } from "../lib/types";
 import { addDays, fmtDate, istDay } from "../lib/date";
@@ -118,6 +119,12 @@ export function Notes({ route }: { route: Route }) {
     load();
     refreshMeta();
   };
+  // Exports exactly the notes on screen (this folder, with any search and filters applied).
+  const exportPdf = () => {
+    if (!notes?.length) return toast("There are no notes here to export");
+    exportNotesPdf(notes, title, folders);
+  };
+
   const empty = async () => {
     if (!(await confirm({ title: "Empty Trash?", body: `All ${counts?.trash ?? ""} notes in Trash will be permanently deleted.`, confirm: "Empty Trash", danger: true }))) return;
     await emptyTrash();
@@ -140,6 +147,7 @@ export function Notes({ route }: { route: Route }) {
         </div>
         <div className="row">
           {current && <button className="btn soft sm" onClick={() => setManage(current)}><Settings2 size={16} />Folder</button>}
+          {sel !== "trash" && <button className="btn soft sm" onClick={exportPdf} title="Export the notes shown here as one PDF"><FileDown size={16} />Export PDF</button>}
           {sel !== "trash" && <button className="btn grad sm" style={{ ["--c1" as string]: "var(--news-1)", ["--c2" as string]: "var(--news-2)" }} onClick={() => go(`draw/new/new${current ? `?f=${current.id}` : ""}`)}><PenLine size={16} />Write by hand</button>}
           {sel === "trash" && (counts?.trash ?? 0) > 0 && <button className="btn danger sm" onClick={empty}><Trash2 size={16} />Empty Trash</button>}
         </div>

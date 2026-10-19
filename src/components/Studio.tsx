@@ -65,6 +65,19 @@ const Defs = () => (
   </defs>
 );
 
+/** A whole page at full size, for printing and PDF export (trims empty space at the bottom). */
+export function PageFull({ page }: { page: Page }) {
+  const items = itemsOf(page);
+  const box = unionBox(items);
+  const h = Math.min(page.height, Math.max(600, (box ? box.y + box.h : 600) + 60));
+  return (
+    <svg viewBox={`0 0 ${W} ${h}`} style={{ width: "100%", display: "block", background: "#fff" }} preserveAspectRatio="xMinYMin meet">
+      <Defs />
+      {items.map((it) => <ItemView key={it.id} it={it} />)}
+    </svg>
+  );
+}
+
 /** Read-only picture of a page, for lists and previews. */
 export function PageThumb({ page, maxHeight = 140 }: { page: Page; maxHeight?: number }) {
   const items = itemsOf(page);
@@ -158,9 +171,11 @@ export interface StudioProps {
   onChange?: (p: Page) => void;
   onSave: (p: Page) => void | Promise<void>;
   onClose: () => void;
+  /** Page controls shown under the top bar (several pages in one note). */
+  pager?: React.ReactNode;
 }
 
-export function Studio({ page, title, mode = "page", onChange, onSave, onClose }: StudioProps) {
+export function Studio({ page, title, mode = "page", onChange, onSave, onClose, pager }: StudioProps) {
   const toast = useToast();
   const confirm = useConfirm();
   const [items, setItems] = useState<Item[]>(() => itemsOf(page));
@@ -597,6 +612,7 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose }
         <button className="studio-save" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
       </header>
 
+      {pager}
       {zoom > 1.02 && <button className="studio-zoom" onClick={() => setZoom(1)} aria-label="Reset zoom">{Math.round(zoom * 100)}% · Reset</button>}
       <div className="studio-scroll" ref={scroller}>
         <div
