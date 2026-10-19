@@ -94,8 +94,12 @@ export const GUIDE: Part[] = [
   },
   {
     icon: LayoutGrid, color: "var(--more-1)", title: "More",
-    lead: "To-do list, what you studied today, and anything on any date.",
-    steps: ["Add tasks, tick them off, and look back at any day's notes, news and tasks."],
+    lead: "To-do list, what you studied today, anything on any date, and your reading.",
+    steps: [
+      "Add tasks, tick them off, and look back at any day's notes, news and tasks.",
+      "Reading tab: your reading streak, a 5-question daily quiz from the world briefing, topics you follow, your reading list (marked when readable offline) and every passage you highlighted.",
+      "While reading an article, select text to Highlight it or Define a word.",
+    ],
   },
   {
     icon: Search, color: "var(--accent)", title: "Search",
