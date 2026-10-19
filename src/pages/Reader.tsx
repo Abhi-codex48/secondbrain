@@ -8,6 +8,7 @@ import { fmtDate, fmtTime } from "../lib/date";
 import { back, go } from "../lib/router";
 import { RichEditor } from "../components/RichEditor";
 import { KeyPointsView } from "../components/KeyPointsView";
+import { ArticleText } from "../components/ArticleText";
 import { errMsg, Skeleton, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 import { LEVEL, srcColor } from "./News";
@@ -229,7 +230,7 @@ export function Reader({ id }: { id: string }) {
                 <span className="row"><FileText size={18} /><b>Full article</b><span className="tiny">{Math.round(item.article_text.length / 5.5 / 200) || 1} min read</span></span>
                 {showText ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
-              {showText && <div className="article-text">{item.article_text}</div>}
+              {showText && <ArticleText item={item} />}
             </div>
           )}
         </div>

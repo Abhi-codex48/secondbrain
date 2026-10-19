@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Trash2, Plus, ListTodo, BookOpenCheck, CalendarSearch, NotebookPen, Newspaper, CheckCircle2, CalendarDays } from "lucide-react";
+import { Check, Trash2, Plus, ListTodo, BookOpenCheck, CalendarSearch, NotebookPen, Newspaper, CheckCircle2, CalendarDays, BookOpen } from "lucide-react";
+import { ReadingTools } from "./ReadingTools";
 import { activityBetween, addTodo, deleteTodo, listTodos, setTodoDone } from "../lib/api";
 import type { Todo } from "../lib/types";
 import { addDays, fmtDate, fmtTime, istDay } from "../lib/date";
@@ -7,25 +8,28 @@ import { go, type Route } from "../lib/router";
 import { errMsg, Skeleton, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 
-type Tab = "todo" | "today" | "date";
+type Tab = "todo" | "today" | "date" | "reading";
 
 export function More({ route }: { route: Route }) {
   const tab = (route.query.get("t") as Tab) || "todo";
-  useEffect(() => setTitle(tab === "todo" ? "To-do" : tab === "today" ? "Studied today" : "By date"), [tab]);
+  const name = { todo: "To-do", today: "Studied today", date: "By date", reading: "Reading" }[tab] ?? "More";
+  useEffect(() => setTitle(name), [name]);
   return (
     <div className="page" style={{ ["--c1" as string]: "var(--more-1)" }}>
       <div className="stack" style={{ gap: 4 }}>
         <span className="kicker" style={{ fontWeight: 800, fontSize: ".8rem", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--more-1)" }}>More</span>
-        <h1>{tab === "todo" ? "To-do" : tab === "today" ? "What I studied today" : "Search by date"}</h1>
+        <h1>{tab === "todo" ? "To-do" : tab === "today" ? "What I studied today" : tab === "reading" ? "My reading" : "Search by date"}</h1>
       </div>
-      <div className="seg" role="tablist" style={{ maxWidth: 560 }}>
+      <div className="seg" role="tablist" style={{ maxWidth: 640 }}>
         <button className={tab === "todo" ? "on" : ""} onClick={() => go("more?t=todo")} role="tab" aria-selected={tab === "todo"}><ListTodo size={17} />To-do</button>
         <button className={tab === "today" ? "on" : ""} onClick={() => go("more?t=today")} role="tab" aria-selected={tab === "today"}><BookOpenCheck size={17} />Today</button>
         <button className={tab === "date" ? "on" : ""} onClick={() => go("more?t=date")} role="tab" aria-selected={tab === "date"}><CalendarSearch size={17} />By date</button>
+        <button className={tab === "reading" ? "on" : ""} onClick={() => go("more?t=reading")} role="tab" aria-selected={tab === "reading"}><BookOpen size={17} />Reading</button>
       </div>
       {tab === "todo" && <Todos />}
       {tab === "today" && <Activity fixed={istDay()} />}
       {tab === "date" && <ByDate />}
+      {tab === "reading" && <ReadingTools />}
     </div>
   );
 }

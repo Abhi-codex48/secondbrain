@@ -36,6 +36,8 @@ function text(v: unknown): string {
 
 export function stripHtml(s: string): string {
   return decodeEntities(s)
+    // Embedded styles and scripts (Wiktionary's feed has CSS inside) are not text.
+    .replace(/<(style|script)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")

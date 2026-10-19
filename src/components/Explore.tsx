@@ -29,7 +29,9 @@ export function Explore() {
   }, []);
   const pick = (t: string) => { setTab(t); try { localStorage.setItem("sb-explore", t); } catch { /* fine */ } };
 
-  const shown = (groups ?? []).map((g) => ({ ...g, boxes: g.boxes.filter((b) => b.items.length) })).filter((g) => g.boxes.length);
+  // Never show a broken item (a feed that leaked page code instead of text).
+  const ok = (i: ReadItem) => i.title && !/[{}]|mw-parser|<\/?\w/.test(`${i.title} ${i.text}`);
+  const shown = (groups ?? []).map((g) => ({ ...g, boxes: g.boxes.map((b) => ({ ...b, items: b.items.filter(ok) })).filter((b) => b.items.length) })).filter((g) => g.boxes.length);
   if (!shown.length) return null;
   const g = shown.find((x) => x.key === tab) ?? shown[0];
 

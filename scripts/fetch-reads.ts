@@ -6,7 +6,7 @@
 // Only titles, links, dates and the publishers' own short descriptions are kept.
 // When a source fails, that box keeps its items from the previous run.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { parseFeed, canonicalUrl, type FeedItem } from "../shared/rss.ts";
+import { parseFeed, canonicalUrl, decodeEntities, stripHtml, type FeedItem } from "../shared/rss.ts";
 import { googleNewsFeed } from "../shared/sources.ts";
 
 const [out = "reads.json", newsPath = "news.json", knowledgePath = "knowledge.json", previousUrl] = process.argv.slice(2);
@@ -95,15 +95,22 @@ async function featuredArticles(): Promise<ReadItem[]> {
 }
 
 /** Wiktionary's word of the day for the last week. */
+export function parseWotd(xml: string): ReadItem[] {
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => m[1]);
+  return items.reverse().slice(0, 7).map((raw) => {
+    const field = (tag: string) => decodeEntities(raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))?.[1] ?? "").replace(/^<!\[CDATA\[|\]\]>$/g, "");
+    const html = decodeEntities(field("description"));
+    // The day's word is the first link to a dictionary entry (not a "Wiktionary:" or "Category:" page).
+    const link = [...html.matchAll(/href="(?:https?:)?(?:\/\/en\.wiktionary\.org)?\/wiki\/([^"#?:]+)"/g)].map((m) => decodeURIComponent(m[1]).replace(/_/g, " "))[0] ?? "";
+    const text = stripHtml(html);
+    const after = link && text.includes(link) ? text.slice(text.indexOf(link) + link.length) : text;
+    return { title: link || text.split(" ")[0], url: field("link") || (link ? `https://en.wiktionary.org/wiki/${encodeURIComponent(link)}` : ""), source: "Wiktionary, word of the day", text: short(after, 200), date: field("pubDate") ? new Date(field("pubDate")).toISOString() : null };
+  }).filter((i) => i.title && !/[{}]|mw-parser/.test(i.title + i.text));
+}
 async function wordsOfTheDay(): Promise<ReadItem[]> {
   try {
-    const xml = await get("https://en.wiktionary.org/w/api.php?action=featuredfeed&feed=wotd&feedformat=rss");
-    const items = parseFeed(xml).reverse().slice(0, 7).map((i) => {
-      // The description starts with the word and its part of speech, then the meanings.
-      const word = i.description.split(/\s+/)[0] || i.title;
-      return { title: word, url: i.url, source: "Wiktionary, word of the day", text: short(i.description.replace(/^\S+\s*/, ""), 200), date: i.publishedAt };
-    });
-    report.push(`OK   Words: ${items.length}`);
+    const items = parseWotd(await get("https://en.wiktionary.org/w/api.php?action=featuredfeed&feed=wotd&feedformat=rss"));
+    report.push(`${items.length ? "OK  " : "FAIL"} Words: ${items.length}`);
     return items;
   } catch (e) {
     report.push(`FAIL Words: ${(e as Error).message}`);
@@ -223,8 +230,10 @@ async function main() {
   for (const r of report) console.log(r);
 }
 
-main().catch((e) => {
-  // Never block the deploy over these boxes.
-  console.error(e);
-  writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), groups: [] }));
-});
+if (process.argv[1]?.endsWith("fetch-reads.ts")) {
+  main().catch((e) => {
+    // Never block the deploy over these boxes.
+    console.error(e);
+    writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), groups: [] }));
+  });
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Search } from "lucide-react";
-import { addLink, archiveDays, listNews, onNewsUpdate, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
+import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Search, Hash } from "lucide-react";
+import { addLink, archiveDays, getFollowing, listNews, onNewsUpdate, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
 import type { NewsItem, Source } from "../lib/types";
 import { fmtDate, istDay, relTime } from "../lib/date";
 import { go } from "../lib/router";
@@ -27,6 +27,8 @@ export function News() {
   const [q, setQ] = useState("");
   const [qq, setQq] = useState("");
   const [oldest, setOldest] = useState<string | null>(null);
+  const [following, setFollowingList] = useState<string[]>([]);
+  useEffect(() => { getFollowing().then(setFollowingList).catch(() => {}); }, []);
   useEffect(() => { const t = setTimeout(() => setQq(q.trim()), 200); return () => clearTimeout(t); }, [q]);
   useEffect(() => { archiveDays().then((d) => setOldest(d.length ? d[d.length - 1].day : null)); }, []);
   const [syncing, setSyncing] = useState(false);
@@ -199,6 +201,14 @@ export function News() {
         </label>
       </div>
 
+      {following.length > 0 && (
+        <div className="chips" aria-label="Topics you follow">
+          <a className="chip" href="#/more?t=reading" title="Manage followed topics"><Hash size={14} />Following</a>
+          {following.map((k) => (
+            <button key={k} className={`chip ${q.toLowerCase() === k.toLowerCase() ? "on" : ""}`} onClick={() => setQ(q.toLowerCase() === k.toLowerCase() ? "" : k)} aria-pressed={q.toLowerCase() === k.toLowerCase()}>{k}</button>
+          ))}
+        </div>
+      )}
       <div className="chips" aria-label="Topics">
         {topics.filter((t) => !t || counts.get(t) || topic === t).map((t) => (
           <button key={t || "all"} className={`chip ${topic === t ? "on" : ""}`} onClick={() => setTopic(t)} aria-pressed={topic === t}>
