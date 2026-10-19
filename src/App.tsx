@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, configured } from "./lib/firebase";
 import { useRoute } from "./lib/router";
@@ -42,8 +43,8 @@ function Pages() {
     default: page = <Home />;
   }
   // The drawing studio is full screen, so the app's bars and buttons are left out.
-  if (p === "draw") return <Suspense fallback={<Splash />}>{page}</Suspense>;
-  return <Layout route={route}><Suspense fallback={<div className="page"><div className="skel" style={{ width: "40%", height: 28 }} /></div>}>{page}</Suspense></Layout>;
+  if (p === "draw") return <ErrorBoundary resetKey={route.path.join("/")}><Suspense fallback={<Splash />}>{page}</Suspense></ErrorBoundary>;
+  return <Layout route={route}><ErrorBoundary resetKey={route.path.join("/")}><Suspense fallback={<div className="page"><div className="skel" style={{ width: "40%", height: 28 }} /></div>}>{page}</Suspense></ErrorBoundary></Layout>;
 }
 
 // Load the other screens in the background once the app is idle, so opening them is instant.
@@ -67,7 +68,7 @@ export function App() {
   useEffect(() => { if (user) preload(); }, [user]);
 
   // Share links open for anyone, signed in or not.
-  if (route.path[0] === "s" && route.path[1]) return <Suspense fallback={<Splash />}><SharedView id={route.path[1]} /></Suspense>;
+  if (route.path[0] === "s" && route.path[1]) return <ErrorBoundary><Suspense fallback={<Splash />}><SharedView id={route.path[1]} /></Suspense></ErrorBoundary>;
   if (!configured) return <NotConfigured />;
   if (user === undefined) return <Splash />;
   return (

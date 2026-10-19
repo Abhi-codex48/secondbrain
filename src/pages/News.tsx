@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Search, Hash } from "lucide-react";
+import { Bookmark, BookmarkCheck, Link2, Loader2, RefreshCw, X, Newspaper, CloudOff, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Search, Hash } from "lucide-react";
 import { addLink, archiveDays, getFollowing, listNews, onNewsUpdate, loadNewsFile, newsHealth, setNewsStatus } from "../lib/api";
 import type { NewsItem, Source } from "../lib/types";
 import { fmtDate, istDay, relTime } from "../lib/date";
@@ -32,6 +32,7 @@ export function News() {
   useEffect(() => { const t = setTimeout(() => setQq(q.trim()), 200); return () => clearTimeout(t); }, [q]);
   useEffect(() => { archiveDays().then((d) => setOldest(d.length ? d[d.length - 1].day : null)); }, []);
   const [syncing, setSyncing] = useState(false);
+  const [loadErr, setLoadErr] = useState(false);
   const [synced, setSynced] = useState<string | null>(null);
   const [url, setUrl] = useState("");
   const [fetching, setFetching] = useState(false);
@@ -47,11 +48,12 @@ export function News() {
         q: qq || undefined,
       });
       setAll(rows);
-    } catch (e) {
-      toast(errMsg(e), { bad: true });
+      setLoadErr(false);
+    } catch {
+      setLoadErr(true);
       setAll([]);
     }
-  }, [src, view, day, qq, toast]);
+  }, [src, view, day, qq]);
   // Section filter is exact: a headline shows only under the section its paper filed it in.
   const items = useMemo(() => (all && topic ? all.filter((n) => n.topics[0] === topic) : all), [all, topic]);
   const setItems = (fn: (xs: NewsItem[] | null) => NewsItem[] | null) => setAll(fn);
@@ -130,6 +132,7 @@ export function News() {
   };
 
   const failing = sources.filter((s) => !s.ok);
+  const stale = sources.filter((s) => s.ok && s.stale);
   const topics = useMemo(() => ["", ...SECTIONS, TOP_STORIES], []);
   // Grouped by topic so a day's 300+ headlines read like a newspaper's sections.
   const groups = useMemo(() => {
@@ -168,10 +171,13 @@ export function News() {
       <div className="sync">
         <span className={`dot ${failing.length ? "warn" : ""}`} />
         <span>Last checked {relTime(synced)}{sources.length ? ` · ${sources.filter((s) => s.ok).length} sources` : ""}</span>
-        {failing.length > 0 && (
-          <a href="#/settings" className="tiny" style={{ color: "var(--warn)" }}>
-            <AlertTriangle size={13} style={{ verticalAlign: -2 }} /> {failing.map((f) => f.name).join(", ")} not responding
-          </a>
+        {(failing.length > 0 || stale.length > 0) && (
+          <span className="sync-note">
+            {failing.length > 0
+              ? <span title={failing.map((f) => f.name).join(", ")}>{failing.length === 1 ? `${failing[0].name} is` : `${failing.length} papers are`} taking a break</span>
+              : <span title={stale.map((f) => f.name).join(", ")}>{stale.length === 1 ? `${stale[0].name} shows` : `${stale.length} papers show`} earlier headlines</span>}
+            <button className="retry" onClick={() => sync(true)} disabled={syncing}><RefreshCw size={13} className={syncing ? "spin" : ""} />{syncing ? "Trying…" : "Try again"}</button>
+          </span>
         )}
       </div>
 
@@ -229,6 +235,13 @@ export function News() {
 
       {items === null ? (
         <div className="nsecs">{[0, 1].map((i) => <div key={i} className="card"><Skeleton lines={5} /></div>)}</div>
+      ) : loadErr ? (
+        <div className="card empty">
+          <CloudOff size={34} />
+          <b>Couldn't load the news</b>
+          <span className="tiny">Check your connection, then try again. Your notes are safe.</span>
+          <button className="btn primary" onClick={() => sync(true)} disabled={syncing}><RefreshCw size={17} className={syncing ? "spin" : ""} />{syncing ? "Trying…" : "Try again"}</button>
+        </div>
       ) : items.length === 0 ? (
         <div className="card empty">
           <Newspaper size={34} />

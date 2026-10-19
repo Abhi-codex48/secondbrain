@@ -945,3 +945,13 @@ html.theme-vt .topbar, html.theme-vt .bottomnav { view-transition-name: none; }
 html.theme-vt::view-transition-old(root) { animation: none; }
 html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bezier(.4, 0, .2, 1); }
 @keyframes theme-reveal { from { clip-path: circle(0 at var(--tx) var(--ty)); } to { clip-path: circle(var(--tr) at var(--tx) var(--ty)); } }
+
+/* Gentle note when a paper is slow, with a Try again pill */
+.sync-note { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink-3); }
+.retry { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 800; color: var(--accent); background: var(--accent-soft); transition: transform .15s var(--ease); }
+.retry:active { transform: scale(.95); }
+.retry:disabled { opacity: .7; }
+/* Shown instead of a broken screen */
+.crash { min-height: 60vh; display: grid; place-items: center; padding: 24px 16px; }
+.crash .card { max-width: 420px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 22px; }
+.crash .crash-ic { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--notes-1), var(--news-2)); box-shadow: var(--shadow); }

@@ -136,7 +136,7 @@ export function Settings() {
       <Profile />
 
       <h3 className="sgroup">Content</h3>
-      <Section icon={<Newspaper size={19} />} title="News sources" sub={health ? `${health.sources.filter((x) => x.ok).length} of ${health.sources.length} working · updated ${relTime(health.generatedAt)}` : "Checking…"} color="var(--news-2)">
+      <Section icon={<Newspaper size={19} />} title="News sources" sub={health ? `${health.sources.filter((x) => x.ok && !x.stale).length} of ${health.sources.length} up to date · updated ${relTime(health.generatedAt)}` : "Checking…"} color="var(--news-2)">
         <p className="tiny">Headlines are collected every hour from each paper's section feeds and filed under the paper's own section. If all of a paper's feeds fail, its headlines come from Google News and are filed under Top stories.</p>
         {health === null ? <Skeleton /> : health.sources.length === 0 ? <p className="muted">The first hourly news update hasn't run yet.</p> : (
           <div>
@@ -145,9 +145,9 @@ export function Settings() {
               <div key={s.key} className="set-row">
                 <div className="grow stack" style={{ gap: 2 }}>
                   <b>{s.name}</b>
-                  <span className="tiny">{s.ok ? `${s.count} headlines${s.fallback ? " · via Google News" : ""}` : <span style={{ color: "var(--warn)" }}>Not responding{s.error ? `: ${s.error.slice(0, 120)}` : ""}</span>}</span>
+                  <span className="tiny">{s.stale ? `${s.count} earlier headlines · couldn't be reached this hour, retried automatically` : s.ok ? `${s.count} headlines${s.fallback ? " · via Google News" : ""}` : <span style={{ color: "var(--warn)" }}>Couldn't be reached this hour · retried automatically every hour</span>}</span>
                 </div>
-                {s.ok ? <CheckCircle2 size={18} color="var(--ok)" /> : <AlertTriangle size={18} color="var(--warn)" />}
+                {s.ok && !s.stale ? <CheckCircle2 size={18} color="var(--ok)" /> : <AlertTriangle size={18} color="var(--warn)" />}
               </div>
             ))}
           </div>

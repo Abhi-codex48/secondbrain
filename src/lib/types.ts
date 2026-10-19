@@ -69,6 +69,8 @@ export interface Source {
   ok: boolean;
   count: number;
   fallback: boolean;
+  /** Couldn't be reached this hour; its earlier headlines are still shown. */
+  stale?: boolean;
   error?: string;
 }
 

@@ -44,6 +44,26 @@ async function get(url: string): Promise<string> {
   }
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Google News limits bursts (HTTP 429/503), so the papers that need it go one at a time,
+// with a pause, and each gets one more try after a longer wait.
+let googleQueue: Promise<unknown> = Promise.resolve();
+function getGoogle(url: string): Promise<string> {
+  const run = googleQueue.then(async () => {
+    await sleep(1500);
+    try {
+      return await get(url);
+    } catch (e) {
+      if (!/HTTP (429|503)/.test((e as Error).message)) throw e;
+      await sleep(6000);
+      return await get(url);
+    }
+  });
+  googleQueue = run.catch(() => {});
+  return run;
+}
+
 const idOf = (url: string) => createHash("sha1").update(url).digest("hex").slice(0, 16);
 
 async function main() {
@@ -58,7 +78,7 @@ async function main() {
     }
   }
 
-  const report: { key: string; name: string; ok: boolean; count: number; fallback: boolean; error?: string }[] = [];
+  const report: { key: string; name: string; ok: boolean; count: number; fallback: boolean; stale?: boolean; error?: string }[] = [];
   const fresh: NewsItem[] = [];
 
   await Promise.all(DEFAULT_SOURCES.map(async (src) => {
@@ -104,7 +124,7 @@ async function main() {
       fallback = true;
       try {
         const g = googleNewsFeed(src.site);
-        collect(parseFeed(await get(g)), null, true);
+        collect(parseFeed(await getGoogle(g)), null, true);
       } catch (e) {
         errors.push(`Google News fallback: ${(e as Error).message}`);
       }
@@ -123,6 +143,13 @@ async function main() {
     .filter((p) => now - Date.parse(p.fetchedAt) < KEEP_MS)
     .map((p) => ({ ...p, topics: [sectionFromUrl(p.url) ?? (known.has(p.topics?.[0]) ? p.topics[0] : TOP_STORIES)] }));
   const seen = new Map(prev.map((p) => [p.id, p]));
+  // A paper that couldn't be reached this hour still shows its earlier headlines;
+  // it is marked as kept from the last update rather than as down.
+  for (const r of report) {
+    if (r.ok) continue;
+    const kept = prev.filter((p) => p.source === r.key).length;
+    if (kept) Object.assign(r, { ok: true, stale: true, count: kept });
+  }
   for (const f of fresh) if (!seen.has(f.id)) seen.set(f.id, f);
   // Keep the file small so it opens fast on phones: descriptions only for the last day.
   const items = [...seen.values()]
@@ -134,7 +161,7 @@ async function main() {
   if (items.length === 0) throw new Error("No headlines from any source and no previous list; keeping the live site as it is.");
   writeFileSync(out, JSON.stringify({ generatedAt: fetchedAt, sources: report.sort((a, b) => a.name.localeCompare(b.name)), items }));
   console.log(`news.json: ${items.length} items (${fresh.length} fetched now)`);
-  for (const r of report) console.log(`${r.ok ? "OK  " : "FAIL"} ${r.name}: ${r.count}${r.fallback ? " (Google News)" : ""}${r.error ? ` — ${r.error}` : ""}`);
+  for (const r of report) console.log(`${r.ok ? "OK  " : "FAIL"} ${r.name}: ${r.count}${r.fallback ? " (Google News)" : ""}${r.stale ? " (kept from last update)" : ""}${r.error ? ` — ${r.error}` : ""}`);
 }
 
 main().catch((e) => {
