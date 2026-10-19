@@ -124,7 +124,10 @@ export const GUIDE: Part[] = [
   {
     icon: Search, color: "var(--accent)", title: "Search",
     lead: "The bar at the top searches everything.",
-    steps: ["Your notes, saved news and Wikipedia at once, with a one-tap Google search."],
+    steps: [
+      "Results appear as you type: your notes, news and Wikipedia at once, with a one-tap Google search.",
+      "Tap ✕ in the bar to clear it.",
+    ],
   },
   {
     icon: Settings, color: "var(--ink-2)", title: "Settings",

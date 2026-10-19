@@ -844,3 +844,5 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .xleadrow .xkeep { margin-top: 10px; }
 .xbox li.xrow .xkeep { margin-top: 6px; margin-right: -6px; }
 .xkeep { flex: none; color: var(--ink-3); }
+.top-search input::-webkit-search-cancel-button { display: none; }
+.top-search .icon-btn { width: 32px; height: 32px; flex: none; margin-right: -6px; }

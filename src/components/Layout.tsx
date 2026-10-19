@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { Home, Newspaper, TrendingUp, Library as LibraryIcon, LayoutGrid, Search, Settings, PenLine, Plus } from "lucide-react";
-import { go, type Route } from "../lib/router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Home, Newspaper, TrendingUp, Library as LibraryIcon, LayoutGrid, Search, Settings, PenLine, Plus, X } from "lucide-react";
+import { go, replace, type Route } from "../lib/router";
 import { DrawOverlay } from "./DrawOverlay";
 
 const NAV = [
@@ -30,7 +30,21 @@ const toTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
 
 export function Layout({ route, children }: { route: Route; children: ReactNode }) {
   const [pen, setPen] = useState(false);
-  const [q, setQ] = useState("");
+  // Live search: results update a moment after you stop typing.
+  const onSearch = route.path[0] === "search";
+  const [q, setQ] = useState(() => (onSearch ? route.query.get("q") ?? "" : ""));
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => { if (!onSearch) setQ(""); }, [onSearch]);
+  const type = (v: string) => {
+    setQ(v);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      const t = v.trim();
+      const path = t ? `search?q=${encodeURIComponent(t)}` : "search";
+      if (window.location.hash.startsWith("#/search")) replace(path);
+      else if (t) go(path);
+    }, 300);
+  };
   const cur = section(route);
   // The "+ Note" button is hidden where the page already has its own note area.
   const onEditor = route.path[0] === "note" || route.path[0] === "read";
@@ -50,13 +64,15 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
           <form
             className="top-search searchbox"
             style={{ minHeight: 42 }}
+            role="search"
             onSubmit={(e) => {
               e.preventDefault();
-              if (q.trim()) go(`search?q=${encodeURIComponent(q.trim())}`);
+              (document.activeElement as HTMLElement | null)?.blur(); // closes the phone keyboard
             }}
           >
             <Search size={18} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search everything" aria-label="Search" />
+            <input value={q} onChange={(e) => type(e.target.value)} placeholder="Search everything" aria-label="Search" type="search" enterKeyHint="search" />
+            {q && <button type="button" className="icon-btn sm" onClick={() => type("")} aria-label="Clear search"><X size={16} /></button>}
           </form>
           <div className="top-actions">
             <button className="icon-btn" onClick={() => setPen(true)} aria-label="Pen mode" title="Pen mode: draw over the screen"><PenLine size={20} /></button>

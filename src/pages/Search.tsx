@@ -5,26 +5,23 @@ import type { NewsItem, Note } from "../lib/types";
 import { fmtDate } from "../lib/date";
 import { go, type Route } from "../lib/router";
 import { googleUrl, searchWikipedia, type WikiHit } from "../lib/wiki";
-import { Skeleton, useDebounced } from "../components/ui";
+import { Skeleton } from "../components/ui";
 import { setTitle } from "../components/Layout";
 
 export function Search({ route }: { route: Route }) {
-  const initial = route.query.get("q") ?? "";
-  const [q, setQ] = useState(initial);
-  const dq = useDebounced(q.trim(), 350);
+  // The search bar at the top drives this page (it already waits for you to pause typing).
+  const dq = (route.query.get("q") ?? "").trim();
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [news, setNews] = useState<NewsItem[] | null>(null);
   const [wiki, setWiki] = useState<WikiHit[] | null>(null);
   const [wikiErr, setWikiErr] = useState(false);
 
-  useEffect(() => setQ(initial), [initial]);
   useEffect(() => {
     setTitle(dq ? `Search: ${dq}` : "Search");
     if (!dq) {
       setNotes(null); setNews(null); setWiki(null);
       return;
     }
-    window.history.replaceState(null, "", `#/search?q=${encodeURIComponent(dq)}`);
     const ctrl = new AbortController();
     setNotes(null); setNews(null); setWiki(null); setWikiErr(false);
     listNotes({ q: dq, limit: 30 }).then(setNotes).catch(() => setNotes([]));
@@ -36,10 +33,7 @@ export function Search({ route }: { route: Route }) {
   return (
     <div className="page">
       <h1>Search</h1>
-      <form className="searchbox" style={{ minHeight: 56, borderRadius: 18 }} onSubmit={(e) => e.preventDefault()}>
-        <SearchIcon size={20} />
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type anything you remember…" aria-label="Search" enterKeyHint="search" />
-      </form>
+      {!dq && <p className="muted row"><SearchIcon size={18} />Type in the search bar at the top. Results from your notes, news and Wikipedia appear as you type.</p>}
 
       {dq && (
         <div className="row">

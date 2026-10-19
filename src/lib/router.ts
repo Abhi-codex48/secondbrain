@@ -27,8 +27,14 @@ export function useRoute(): Route {
       if (d.startViewTransition && !still) d.startViewTransition(() => flushSync(next));
       else next();
     };
+    // Quiet updates (live search) change the address without a page transition.
+    const quiet = () => setRoute(parse());
     window.addEventListener("hashchange", on);
-    return () => window.removeEventListener("hashchange", on);
+    window.addEventListener("sb-route", quiet);
+    return () => {
+      window.removeEventListener("hashchange", on);
+      window.removeEventListener("sb-route", quiet);
+    };
   }, []);
   return route;
 }
@@ -39,3 +45,9 @@ export function go(path: string) {
 }
 
 export const back = () => (window.history.length > 1 ? window.history.back() : go(""));
+
+/** Changes the address without adding a history step or animating (for typing in search). */
+export function replace(path: string) {
+  window.history.replaceState(null, "", `#/${path.replace(/^\/+/, "")}`);
+  window.dispatchEvent(new Event("sb-route"));
+}
