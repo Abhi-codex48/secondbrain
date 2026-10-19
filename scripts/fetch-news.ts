@@ -146,7 +146,13 @@ async function main() {
       }
       via = used.join(" + ") || undefined;
     }
-    const unique = [...new Map(rows.map((r) => [r.id, r])).values()]
+    // One entry per story: same link, or the same headline from two routes (the first, real link wins).
+    const byTitle = new Map<string, NewsItem>();
+    for (const r of rows) {
+      const k = r.title.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      if (!byTitle.has(k)) byTitle.set(k, r);
+    }
+    const unique = [...new Map([...byTitle.values()].map((r) => [r.id, r])).values()]
       .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
       .slice(0, PER_SOURCE);
     fresh.push(...unique);
