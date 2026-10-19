@@ -1,5 +1,5 @@
-// News sources: established national newspapers, the government's Press
-// Information Bureau and public broadcaster, and Down To Earth (environment).
+// News sources: 13 established national newspapers and the government's Press
+// Information Bureau (PIB).
 // Each paper lists its section feeds. Feed addresses follow each publisher's
 // own RSS pattern; any that stop working show up as failures in Settings, and
 // when all of a paper's feeds fail its headlines come from a Google News search
@@ -85,7 +85,6 @@ export const DEFAULT_SOURCES: SourceDef[] = [
   { key: "new-indian-express", name: "The New Indian Express", site: "newindianexpress.com", feeds: [] },
   { key: "telegraph", name: "The Telegraph", site: "telegraphindia.com", feeds: [] },
   { key: "statesman", name: "The Statesman", site: "thestatesman.com", feeds: [] },
-  { key: "down-to-earth", name: "Down To Earth", site: "downtoearth.org.in", feeds: [] },
   {
     key: "pib", name: "PIB (Govt. of India)", site: "pib.gov.in",
     feeds: [f("Government", "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3")],

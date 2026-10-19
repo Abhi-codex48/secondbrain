@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Lock, Newspaper, PenLine } from "lucide-react";
+import { Globe2, Loader2, Lock, Newspaper, PenLine } from "lucide-react";
 import { signInWithGoogle } from "../lib/firebase";
 import { errMsg } from "../components/ui";
 
@@ -35,11 +35,12 @@ export function Auth() {
       <main className="auth-card">
         <img className="auth-logo" src="./icon.svg" alt="" />
         <h1>Second Brain</h1>
-        <p className="auth-lead">Your notes, handwriting and the day's news, in one private place.</p>
+        <p className="auth-lead">Your news, notes and handwriting, in one private place.</p>
         <ul className="auth-points">
-          <li style={{ ["--c" as string]: "var(--news-2)" }}><span><Newspaper size={18} /></span>Every section of 14 newspapers and PIB, with key points</li>
-          <li style={{ ["--c" as string]: "var(--notes-1)" }}><span><PenLine size={18} /></span>Write by hand, highlight and mark up any page</li>
-          <li style={{ ["--c" as string]: "var(--more-1)" }}><span><Lock size={18} /></span>Private to your Google account and synced on all your devices</li>
+          <li style={{ ["--c" as string]: "var(--news-2)" }}><span><Newspaper size={18} /></span>Every section of 13 newspapers and PIB, with full articles and key points</li>
+          <li style={{ ["--c" as string]: "var(--more-1)" }}><span><Globe2 size={18} /></span>A daily world briefing: wars, economies, markets and On this day</li>
+          <li style={{ ["--c" as string]: "var(--notes-1)" }}><span><PenLine size={18} /></span>Notes, handwriting, and a pen to mark up any page</li>
+          <li style={{ ["--c" as string]: "var(--notes-2)" }}><span><Lock size={18} /></span>Private to your Google account and synced on all your devices</li>
         </ul>
         <button className="btn auth-google" onClick={go} disabled={busy}>
           {busy ? <Loader2 size={18} className="spin" /> : <GoogleIcon />}

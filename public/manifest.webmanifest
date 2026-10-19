@@ -1,6 +1,7 @@
 {
   "name": "Second Brain",
   "short_name": "Second Brain",
+  "description": "Every section of 13 newspapers and PIB, a daily world briefing, and your private notes and handwriting.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#fbfaff",

@@ -33,7 +33,7 @@ export function Home() {
         <a className="tile t-news" href="#/news">
           <span className="ic"><Newspaper size={26} /></span>
           <div className="head"><h2>News</h2>{c && <span className="count">{c.news} today</span>}</div>
-          <p>Every section of 14 newspapers and PIB, updated hourly. Read the full article and its key points.</p>
+          <p>Every section of 13 newspapers and PIB, updated hourly. Full articles, key points, and any past date.</p>
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
         <a className="tile t-notes" href="#/notes">

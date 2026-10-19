@@ -2,7 +2,8 @@
 
 A website for Android, iPhone, tablet and desktop. Anyone can sign in with Google and gets a private space that only they can read:
 
-- **News**: headlines from every section (India, World, Business, Opinion, Sports, Entertainment and more) of 14 newspapers plus PIB, collected every hour and filed under each paper's own section. Opening a headline loads the **full article** (through free reader services) with its **key points** (no AI). Bookmark articles or save any link.
+- **News**: headlines from every section (India, World, Business, Opinion, Sports, Entertainment and more) of 13 newspapers plus PIB, collected every hour and filed under each paper's own section. Opening a headline loads the **full article** (through free reader services) with its **key points** (no AI). Bookmark articles or save any link. Go back to any date in the last 90 days, or search a day's headlines.
+- **World briefing** on Home: the day's big world stories, wars, economies and markets, politics and science from Wikipedia's editor-written "In the news" and "Current events" pages (each event links to the outlet it cites), what's trending worldwide, and On this day.
 - **Notes**: your repository in folders. You get:
   - rich text: bold, five highlight colours, text colours, headings, lists, checklists, quotes, links, images
   - handwriting with a pen or finger, and voice typing
@@ -58,7 +59,7 @@ To put it on your phone's home screen:
 
 **News.**
 - The page opens with today's headlines grouped by section; tap a section chip to see only that section.
-- **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Financial Express, Deccan Herald, The Tribune, The New Indian Express, The Telegraph, The Statesman, Down To Earth, and PIB. Sections come from the paper itself (the section in the article's address, or the section feed it came from), so the section filter is exact. If all of a paper's feeds fail, its headlines come from a Google News search for that site and are filed under Top stories. Settings shows which sources and feeds are working.
+- **Sources:** The Hindu, The Indian Express, Hindustan Times, The Times of India, The Economic Times, Mint, Business Standard, Financial Express, Deccan Herald, The Tribune, The New Indian Express, The Telegraph, The Statesman, and PIB. Sections come from the paper itself (the section in the article's address, or the section feed it came from), so the section filter is exact. If all of a paper's feeds fail, its headlines come from a Google News search for that site and are filed under Top stories. Settings shows which sources and feeds are working.
 - **To study an article:** tap it. The full text loads in a few seconds from your own browser through free reader services (Jina Reader and two public page fetchers, tried at the same time), with the key points, facts and figures, and the laws, bodies and schemes it mentions. Subscriber-only articles load only the part the site shows to everyone; for those, open the article and use **Paste article text**. The text stays private in your account.
 
 **Key points without AI.**
