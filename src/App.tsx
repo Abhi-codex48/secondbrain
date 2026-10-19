@@ -37,6 +37,7 @@ function Pages() {
     case "search": page = <Search route={route} />; break;
     case "settings": page = <Settings />; break;
     case "guide": page = <Guide />; break;
+    case "share": page = <ShareIn route={route} />; break;
     case "draw": page = <Draw key={route.path.join("/")} noteId={id ?? "new"} pageParam={route.path[2] ?? "new"} route={route} />; break;
     default: page = <Home />;
   }
@@ -56,11 +57,17 @@ const preload = () => {
   });
 };
 
+const SharedView = lazy(() => import("./pages/SharedView").then((m) => ({ default: m.SharedView })));
+const ShareIn = lazy(() => import("./pages/ShareIn").then((m) => ({ default: m.ShareIn })));
+
 export function App() {
+  const route = useRoute();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   useEffect(() => (configured ? onAuthStateChanged(auth, setUser) : undefined), []);
   useEffect(() => { if (user) preload(); }, [user]);
 
+  // Share links open for anyone, signed in or not.
+  if (route.path[0] === "s" && route.path[1]) return <Suspense fallback={<Splash />}><SharedView id={route.path[1]} /></Suspense>;
   if (!configured) return <NotConfigured />;
   if (user === undefined) return <Splash />;
   return (

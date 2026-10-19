@@ -3,7 +3,7 @@
 // syncs when the connection returns. Lists are filtered on the device, which
 // keeps Firestore reads (free quota ~50,000/day) very low.
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, getDocsFromCache, limit, orderBy, query, setDoc, where, writeBatch,
+  collection, deleteDoc, doc, getDoc, getDocs, getDocsFromCache, limit, orderBy, query, setDoc, where, writeBatch, Timestamp,
   type CollectionReference, type DocumentData,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
@@ -394,6 +394,51 @@ export async function listBookmarks(): Promise<Bookmark[]> {
 }
 export const deleteBookmark = (id: string) => deleteDoc(doc(col("bookmarks"), id));
 
+// ---------- share links ----------
+// A share is a copy of one item, readable by anyone with the link until it
+// expires. Your private list of shares (to revoke them) is kept under your account.
+export interface ShareInput { kind: "note" | "article" | "passage" | "item"; title: string; text?: string; html?: string; url?: string; source?: string; focus?: string; ink?: unknown }
+export interface Share extends ShareInput { id: string; created_at: string; expires_at: string | null }
+const shareId = () => [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
+
+export async function createShare(input: ShareInput, hours: number | null): Promise<Share> {
+  const id = shareId();
+  const created = now();
+  const expires = hours ? new Date(Date.now() + hours * 3600_000) : null;
+  const pub = {
+    owner: uid(), kind: input.kind, title: input.title.slice(0, 300), text: (input.text ?? "").slice(0, 60_000),
+    html: (input.html ?? "").slice(0, 400_000), url: input.url ?? "", source: input.source ?? "", focus: (input.focus ?? "").slice(0, 2000),
+    ink: input.ink ? JSON.stringify(input.ink) : "", created_at: created, expires_at: expires ? Timestamp.fromDate(expires) : null,
+  };
+  if (JSON.stringify(pub).length > 950_000) throw new Error("This is too large to share as a link (about 1 MB at most).");
+  await setDoc(doc(db, "shares", id), pub);
+  const mine: Share = { ...input, id, created_at: created, expires_at: expires?.toISOString() ?? null, ink: undefined, html: undefined, text: (input.text ?? "").slice(0, 200) };
+  void setDoc(doc(col("shares"), id), JSON.parse(JSON.stringify(mine))).catch(() => {});
+  return mine;
+}
+/** Reads a share link; works without signing in. Null when it has expired or was removed. */
+export async function getShare(id: string): Promise<(Share & { ink: unknown }) | null> {
+  try {
+    const d = await getDoc(doc(db, "shares", id));
+    if (!d.exists()) return null;
+    const x = d.data();
+    const exp = x.expires_at ? (x.expires_at as Timestamp).toDate() : null;
+    if (exp && exp.getTime() < Date.now()) return null;
+    return { id, kind: x.kind, title: x.title, text: x.text, html: x.html, url: x.url, source: x.source, focus: x.focus, ink: x.ink ? JSON.parse(x.ink) : null, created_at: x.created_at, expires_at: exp?.toISOString() ?? null };
+  } catch {
+    return null; // expired links are refused by the database rules
+  }
+}
+export async function listMyShares(): Promise<Share[]> {
+  const s = await getDocs(col("shares")).catch(() => null);
+  return (s?.docs.map((d) => d.data() as Share) ?? []).sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+export async function revokeShare(id: string) {
+  await deleteDoc(doc(db, "shares", id)).catch(() => {});
+  await deleteDoc(doc(col("shares"), id));
+}
+export const shareUrl = (id: string) => `${location.origin}${location.pathname}#/s/${id}`;
+
 // ---------- news archive (one file per day, last 90 days) ----------
 const archive = new Map<string, Promise<NewsFile["items"]>>();
 function loadArchiveDay(day: string): Promise<NewsFile["items"]> {
@@ -529,7 +574,7 @@ export async function homeCounts() {
 }
 
 // ---------- storage, backup and clean-up ----------
-const TABLES = ["folders", "notes", "todos", "newsState", "articles", "highlights", "prefs", "bookmarks"] as const;
+const TABLES = ["folders", "notes", "todos", "newsState", "articles", "highlights", "prefs", "bookmarks", "shares"] as const;
 
 export async function exportAll(): Promise<Record<string, Record<string, unknown>[]>> {
   await syncNotes();
@@ -586,6 +631,8 @@ export async function deleteOldNewsData(days: number) {
 }
 
 export async function deleteEverything() {
+  // Public share links first, so nothing of yours stays readable.
+  for (const sh of await listMyShares().catch(() => [])) await deleteDoc(doc(db, "shares", sh.id)).catch(() => {});
   await syncNotes();
   for (const n of notes!.values()) {
     const vs = await getDocs(collection(db, "users", uid(), "notes", n.id, "versions")).catch(() => null);

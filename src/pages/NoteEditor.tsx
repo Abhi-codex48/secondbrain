@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Pin, PinOff, Trash2, History, ListChecks, PenLine, CloudOff, Check, Loader2, AlertTriangle, ExternalLink, X, RotateCcw, FileDown } from "lucide-react";
+import { ArrowLeft, Pin, PinOff, Trash2, History, ListChecks, PenLine, CloudOff, Check, Loader2, AlertTriangle, ExternalLink, X, RotateCcw, FileDown, Share2 } from "lucide-react";
+import { ShareDialog } from "../components/ShareDialog";
 import { exportNotesPdf } from "../lib/pdf";
 import { getNote, listFolders, listVersions, restoreNote, saveNote, trashNote, htmlToText } from "../lib/api";
 import type { Folder, Note, NoteVersion } from "../lib/types";
@@ -28,6 +29,7 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [state, setState] = useState<SaveState>("idle");
   const [history, setHistory] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const toast = useToast();
   const confirm = useConfirm();
   const pending = useRef<Draft | null>(null);
@@ -148,6 +150,7 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
           {note.pinned ? <PinOff size={20} color="#e3a008" /> : <Pin size={20} />}
         </button>
         {created.current && <button className="icon-btn" onClick={() => setHistory(true)} aria-label="History" title="Version history"><History size={20} /></button>}
+        <button className="icon-btn" onClick={() => setSharing(true)} aria-label="Share as a link" title="Share as a link"><Share2 size={20} /></button>
         <button className="icon-btn" onClick={() => exportNotesPdf([{ ...note, folder_id: note.folder_id ?? null } as Note], note.title || "Note")} aria-label="Export as PDF" title="Export as PDF"><FileDown size={20} /></button>
         <button className="icon-btn" onClick={remove} aria-label="Delete" title="Move to Trash"><Trash2 size={20} /></button>
       </div>
@@ -220,6 +223,7 @@ export function NoteEditor({ id, route }: { id: string; route: Route }) {
         />
       )}
 
+      {sharing && <ShareDialog input={{ kind: "note", title: note.title || "Untitled note", html: note.body_html ?? "", url: note.source_url ?? "", source: note.source_name ?? "", ink: note.ink ?? undefined }} onClose={() => setSharing(false)} />}
       {history && <HistorySheet noteId={noteId} onClose={() => setHistory(false)} onRestore={(v) => { update({ title: v.title ?? "", body_html: v.body_html ?? "", ink: v.ink, key_points: v.key_points }); setHistory(false); toast("Earlier version restored. The replaced version is kept in History."); }} />}
     </div>
   );

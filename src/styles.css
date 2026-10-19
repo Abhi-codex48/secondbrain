@@ -846,3 +846,27 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .xkeep { flex: none; color: var(--ink-3); }
 .top-search input::-webkit-search-cancel-button { display: none; }
 .top-search .icon-btn { width: 32px; height: 32px; flex: none; margin-right: -6px; }
+/* ============ Sharing ============ */
+.share-sheet { max-width: 560px; margin: 0 auto; }
+.share-what { font-weight: 700; overflow-wrap: anywhere; line-height: 1.45; }
+.share-custom { gap: 8px; }
+.share-custom .input { width: 90px; flex: none; }
+.share-custom .select { width: auto; }
+.share-keep { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 14px; background: var(--accent-soft); cursor: pointer; }
+.share-keep input { width: 20px; height: 20px; flex: none; margin-top: 2px; accent-color: var(--accent); }
+.share-keep span { display: block; line-height: 1.45; }
+.share-link { display: flex; align-items: center; gap: 8px; }
+.share-link .input { flex: 1; min-width: 0; font-size: .85rem; }
+.share-actions { display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
+.share-actions .btn { justify-content: flex-start; }
+.shared-in a { overflow-wrap: anywhere; }
+.shared { max-width: 760px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-left, 0px)) 40px; display: flex; flex-direction: column; gap: 16px; min-height: 100dvh; background: var(--bg); }
+.shared-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.shared-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 22px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; box-shadow: var(--shadow); }
+.shared-card .kicker { font-weight: 800; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.shared-card h1 { font-size: clamp(1.4rem, 5vw, 2rem); line-height: 1.2; overflow-wrap: anywhere; }
+.shared-card a { color: var(--accent); }
+.shared-body { overflow-wrap: anywhere; }
+.shared-focus { margin: 0; font-size: 1.05rem; line-height: 1.6; }
+mark.focus { background: color-mix(in srgb, var(--hl-yellow) 85%, transparent); color: inherit; border-radius: 4px; padding: 1px 2px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl-yellow) 40%, transparent); }
+.shared-ink { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Copy, NotebookPen } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, ListChecks, ClipboardPaste, AlertTriangle, Save, FileText, CheckCircle2, ChevronDown, ChevronUp, RefreshCw, Copy, NotebookPen, Share2 } from "lucide-react";
+import { ShareDialog } from "../components/ShareDialog";
 import { cleanArticle, fetchFullText } from "../lib/fulltext";
 import { findNoteForNews, getNews, listFolders, savePastedText, saveNote, setNewsStatus } from "../lib/api";
 import type { Folder, NewsItem } from "../lib/types";
@@ -25,6 +26,7 @@ export function Reader({ id }: { id: string }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folderId, setFolderId] = useState("");
   const [mine, setMine] = useState("");
+  const [sharing, setSharing] = useState(false);
   const [saved, setSaved] = useState<{ id: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -149,6 +151,7 @@ export function Reader({ id }: { id: string }) {
       <div className="row">
         <button className="btn soft sm" onClick={back}><ArrowLeft size={17} />Back</button>
         <span className="grow" />
+        <button className="btn soft sm" onClick={() => setSharing(true)}><Share2 size={16} />Share</button>
         <a className="btn line sm" href={item.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Original</a>
       </div>
 
@@ -262,6 +265,14 @@ export function Reader({ id }: { id: string }) {
           </div>
         </aside>
       </div>
+      {sharing && (
+        <ShareDialog
+          // The link carries the headline, the key points and your note, never the newspaper's full text.
+          input={{ kind: "article", title: item.title, url: item.url, source: item.source_name, html: `${points ? keyPointsToHtml(points) : item.description ? `<p>${item.description.replace(/</g, "&lt;")}</p>` : ""}${mine ? `<p><strong>My note</strong></p>${mine}` : ""}` }}
+          keep={item.status === "saved" ? undefined : { label: "Library → Articles", run: async () => { await setNewsStatus(item.id, "saved"); setItem((x) => (x ? { ...x, status: "saved" } : x)); } }}
+          onClose={() => setSharing(false)}
+        />
+      )}
     </div>
   );
 }

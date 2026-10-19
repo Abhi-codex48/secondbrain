@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Highlighter, BookA, X, ExternalLink, Loader2 } from "lucide-react";
+import { Highlighter, BookA, X, ExternalLink, Loader2, Share2 } from "lucide-react";
+import { ShareDialog } from "./ShareDialog";
 import { addHighlight, listHighlights, type Highlight } from "../lib/api";
 import type { NewsItem } from "../lib/types";
 import { errMsg, useToast } from "./ui";
@@ -27,6 +28,7 @@ export function ArticleText({ item }: { item: NewsItem }) {
   const box = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState("");
   const [marks, setMarks] = useState<Highlight[]>([]);
+  const [sharePassage, setSharePassage] = useState("");
   const [word, setWord] = useState<{ w: string; senses: Sense[] | null; err?: string } | null>(null);
   const toast = useToast();
 
@@ -84,8 +86,16 @@ export function ArticleText({ item }: { item: NewsItem }) {
         <div className="selbar" role="toolbar" aria-label="Selected text">
           <button className="btn soft sm" onMouseDown={(e) => e.preventDefault()} onClick={highlight}><Highlighter size={16} />Highlight</button>
           {oneWord && <button className="btn soft sm" onMouseDown={(e) => e.preventDefault()} onClick={lookUp}><BookA size={16} />Define</button>}
+          {!oneWord && <button className="btn soft sm" onMouseDown={(e) => e.preventDefault()} onClick={() => { setSharePassage(sel); window.getSelection()?.removeAllRanges(); setSel(""); }}><Share2 size={16} />Share</button>}
           <button className="icon-btn sm" onClick={() => { window.getSelection()?.removeAllRanges(); setSel(""); }} aria-label="Cancel"><X size={16} /></button>
         </div>
+      )}
+      {sharePassage && (
+        <ShareDialog
+          input={{ kind: "passage", title: item.title, url: item.url, source: item.source_name, focus: sharePassage }}
+          keep={{ label: "Library → Highlights", run: () => addHighlight({ text: sharePassage, news_id: item.id, title: item.title, url: item.url, source: item.source_name }).then((h) => setMarks((m) => [h, ...m])) }}
+          onClose={() => setSharePassage("")}
+        />
       )}
       {word && (
         <>

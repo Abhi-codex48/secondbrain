@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Palette, Sun, Moon, BookOpen, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp } from "lucide-react";
-import { deleteEverything, deleteOldNewsData, emptyTrash, newsHealth, storageUsage } from "../lib/api";
+import { Palette, Sun, Moon, BookOpen, Newspaper, DatabaseBackup, HardDrive, User, Download, Upload, FileArchive, Loader2, CheckCircle2, AlertTriangle, LogOut, Trash2, CircleHelp, Link2, Copy } from "lucide-react";
+import { deleteEverything, deleteOldNewsData, emptyTrash, listMyShares, newsHealth, revokeShare, shareUrl, storageUsage, type Share } from "../lib/api";
 import { downloadJsonBackup, downloadMarkdownZip, restoreBackup } from "../lib/backup";
 import { auth, confirmIdentity, deleteAccount, signOut } from "../lib/firebase";
 import { applyTheme, currentTheme, PALETTES, type Mode, type PaletteId } from "../lib/theme";
 import type { Source } from "../lib/types";
-import { relTime } from "../lib/date";
+import { fmtDate, fmtTime, relTime } from "../lib/date";
 import { errMsg, Skeleton, useConfirm, useToast } from "../components/ui";
 import { setTitle } from "../components/Layout";
 
@@ -183,6 +183,8 @@ export function Settings() {
         )}
       </Section>
 
+      <SharedLinks />
+
       <Section icon={<User size={19} />} title="Account" color="var(--ink-2)">
         <div className="between">
           <span className="muted">{email}</span>
@@ -198,5 +200,35 @@ export function Settings() {
         </div>
       </Section>
     </div>
+  );
+}
+
+/** Every link you shared, with when it stops working; remove any at once. */
+function SharedLinks() {
+  const [items, setItems] = useState<Share[] | null>(null);
+  const toast = useToast();
+  useEffect(() => { listMyShares().then(setItems).catch(() => setItems([])); }, []);
+  const live = (x: Share) => !x.expires_at || Date.parse(x.expires_at) > Date.now();
+  return (
+    <Section icon={<Link2 size={19} />} title="Shared links" color="var(--notes-2)">
+      {items === null ? <Skeleton /> : items.length === 0 ? <p className="tiny">Links you share from a note, an article or a selected passage appear here. You can turn any of them off.</p> : (
+        <ul className="rlist">
+          {items.map((x) => (
+            <li key={x.id} className="rrow">
+              <div className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
+                <span className="t">{x.focus ? `“${x.focus.slice(0, 80)}${x.focus.length > 80 ? "…" : ""}”` : x.title}</span>
+                <span className="tiny">{live(x) ? (x.expires_at ? `Works until ${fmtDate(x.expires_at)}, ${fmtTime(x.expires_at)}` : "No expiry") : "Expired"} · shared {relTime(x.created_at)}</span>
+              </div>
+              {live(x) && <button className="icon-btn sm" aria-label="Copy link" title="Copy link" onClick={() => navigator.clipboard.writeText(shareUrl(x.id)).then(() => toast("Link copied")).catch(() => {})}><Copy size={15} /></button>}
+              <button className="icon-btn sm" aria-label={live(x) ? "Turn off this link" : "Remove from list"} title={live(x) ? "Turn off this link" : "Remove"} onClick={async () => {
+                await revokeShare(x.id).catch((e) => toast(errMsg(e), { bad: true }));
+                setItems((xs) => xs?.filter((y) => y.id !== x.id) ?? null);
+                toast(live(x) ? "Link turned off" : "Removed");
+              }}><Trash2 size={15} /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
