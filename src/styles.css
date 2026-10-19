@@ -474,7 +474,7 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .auth-fine { color: var(--ink-3); max-width: 34ch; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
-@media print { .topbar, .bottomnav, .fab-stack, .toolbar, .toasts { display: none !important; } .main { padding: 0; } }
+@media print { .topbar, .bottomnav, .fab-stack, .site-foot, .toolbar, .toasts { display: none !important; } .main { padding: 0; } }
 .only-m { display: grid; }
 @media (min-width: 860px) { .only-m { display: none !important; } }
 
@@ -904,3 +904,6 @@ mark.focus { background: color-mix(in srgb, var(--hl-yellow) 85%, transparent); 
 .sbody { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .slink:hover, .sset > summary:hover { background: var(--surface-2); border-radius: var(--r); }
 .sset[open] > summary:hover { border-radius: var(--r) var(--r) 0 0; }
+
+.site-foot { margin-top: 36px; padding: 18px 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: .82rem; color: var(--ink-3); overflow-wrap: anywhere; }
+.site-foot > span:first-child { font-weight: 700; color: var(--ink-2); }

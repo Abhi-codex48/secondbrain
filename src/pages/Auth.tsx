@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SiteFooter } from "../components/SiteFooter";
 import { CircleHelp, Globe2, Loader2, Lock, Newspaper, PenLine, X } from "lucide-react";
 import { GuideList } from "./Guide";
 import { signInWithGoogle } from "../lib/firebase";
@@ -51,6 +52,7 @@ export function Auth() {
         {err && <p className="auth-err" role="alert">{err}</p>}
         <button className="auth-how" onClick={() => setHow(true)}><CircleHelp size={16} />See how it works</button>
         <p className="tiny auth-fine">Free, with no ads. Download or delete everything any time from Settings.</p>
+        <SiteFooter />
       </main>
       {how && (
         <>

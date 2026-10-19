@@ -4,6 +4,7 @@ import { go, replace, type Route } from "../lib/router";
 import { applyTheme, currentTheme, type Mode } from "../lib/theme";
 import { auth } from "../lib/firebase";
 import { getName, initials } from "../lib/profile";
+import { SiteFooter } from "./SiteFooter";
 import { NamePrompt } from "./NamePrompt";
 import { DrawOverlay } from "./DrawOverlay";
 
@@ -99,7 +100,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
         </div>
       </header>
 
-      <main className="main">{children}</main>
+      <main className="main">{children}<SiteFooter /></main>
 
       {!onEditor && !pen && (
         <div className={`fab-stack${fabHidden ? " away" : ""}`}>
