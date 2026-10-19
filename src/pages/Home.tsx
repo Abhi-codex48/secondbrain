@@ -4,6 +4,7 @@ import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
 import { KnowledgeBox } from "../components/KnowledgeBox";
+import { Explore } from "../components/Explore";
 
 function greeting() {
   const h = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", hour12: false }).format(new Date()));
@@ -50,6 +51,7 @@ export function Home() {
         </a>
       </div>
       <KnowledgeBox />
+      <Explore />
     </div>
   );
 }
