@@ -88,6 +88,15 @@ export function parseFeed(xml: string): FeedItem[] {
         publishedAt: toIso(text(e.published) || text(e.updated)),
       });
     }
+  } else if (doc?.urlset) {
+    // A Google News sitemap (urlset of url → news:news), which many papers publish.
+    for (const u of arr(doc.urlset.url) as Array<Record<string, unknown>>) {
+      const news = u["news:news"] as Record<string, unknown> | undefined;
+      const url = text(u.loc).trim();
+      const title = stripHtml(text(news?.["news:title"]));
+      if (!url || !title) continue;
+      out.push({ title, url, description: "", publishedAt: toIso(text(news?.["news:publication_date"])) });
+    }
   }
   return out;
 }

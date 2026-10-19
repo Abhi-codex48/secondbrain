@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { classify } from "../shared/classify";
 import { canonicalUrl, parseFeed } from "../shared/rss";
-import { DEFAULT_SOURCES, googleNewsFeed } from "../shared/sources";
+import { DEFAULT_SOURCES, googleNewsFeed, unwrapBing } from "../shared/sources";
 
 describe("classify", () => {
   it("keeps UPSC topics and tags them", () => {
@@ -72,5 +72,23 @@ describe("feeds with many entities", () => {
     expect(got[5].title).toBe("Rock & roll “5”");
     expect(got[5].url).toBe("https://x.org/a?b=1&c=5");
     expect(got[5].description).toBe("Café & more");
+  });
+});
+
+describe("news sitemaps and Bing links", () => {
+  it("reads headlines from a Google News sitemap", () => {
+    const xml = `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+      <url><loc>https://www.newindianexpress.com/nation/2026/Oct/19/cabinet-clears-plan</loc>
+        <news:news><news:publication><news:name>TNIE</news:name></news:publication><news:publication_date>2026-10-19T10:00:00+05:30</news:publication_date><news:title>Cabinet clears plan &amp; more</news:title></news:news></url>
+      <url><loc>https://www.newindianexpress.com/no-title</loc></url></urlset>`;
+    const items = parseFeed(xml);
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe("Cabinet clears plan & more");
+    expect(items[0].publishedAt).toBe("2026-10-19T04:30:00.000Z");
+    expect(sectionFromUrl(items[0].url)).toBe("India");
+  });
+  it("unwraps Bing's click-tracking links", () => {
+    expect(unwrapBing("http://www.bing.com/news/apiclick.aspx?ref=FexRss&url=https%3a%2f%2fwww.telegraphindia.com%2findia%2fstory%2f1&c=2")).toBe("https://www.telegraphindia.com/india/story/1");
+    expect(unwrapBing("https://www.thehindu.com/x")).toBe("https://www.thehindu.com/x");
   });
 });

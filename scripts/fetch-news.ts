@@ -116,9 +116,9 @@ async function main() {
       if (r.status === "fulfilled") {
         const items = parseFeed(r.value);
         if (items.length) ownOk = true;
-        else failed.push(`${fd.section}: empty`);
+        else failed.push(`${fd.section ?? fd.url}: empty`);
         collect(items, fd.section, false);
-      } else failed.push(`${fd.section}: ${(r.reason as Error).message}`);
+      } else failed.push(`${fd.section ?? fd.url}: ${(r.reason as Error).message}`);
     });
     if (failed.length) errors.push(`Feeds not working: ${failed.join(", ")}`);
     let fallback = false;

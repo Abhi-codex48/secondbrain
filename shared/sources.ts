@@ -6,7 +6,8 @@
 // for that site instead (headlines only, filed under "Top stories").
 import type { Section } from "./sections.ts";
 
-export interface Feed { url: string; section: Section }
+/** section is null when the paper's web address says it (the feed mixes sections). */
+export interface Feed { url: string; section: Section | null }
 export interface SourceDef {
   key: string;
   name: string;
@@ -15,7 +16,7 @@ export interface SourceDef {
   site: string;
 }
 
-const f = (section: Section, url: string): Feed => ({ url, section });
+const f = (section: Section | null, url: string): Feed => ({ url, section });
 const hindu = (section: Section, path: string) => f(section, `https://www.thehindu.com/${path}/feeder/default.rss`);
 const ie = (section: Section, path: string) => f(section, `https://indianexpress.com/section/${path}/feed/`);
 const ht = (section: Section, path: string) => f(section, `https://www.hindustantimes.com/feeds/rss/${path}/rssfeed.xml`);
@@ -78,11 +79,20 @@ export const DEFAULT_SOURCES: SourceDef[] = [
     key: "business-standard", name: "Business Standard", site: "business-standard.com",
     feeds: [bs("India", "india-news-216"), bs("Business", "economy-102"), bs("Business", "markets-106"), bs("Business", "companies-101"), bs("Opinion", "opinion-105"), bs("Science & Tech", "technology-108")],
   },
-  // Financial Express blocks automated feed readers (HTTP 403), so it comes through Google News.
+  // Checked from GitHub's servers (Check news feeds workflow): Deccan Herald and New Indian Express
+  // answer with their own feed and news sitemap; Financial Express, The Tribune, The Statesman and
+  // The Telegraph refuse automated readers (HTTP 403 or a challenge page), so they come through Bing
+  // News or Google News. Sections come from each article's web address.
   { key: "financial-express", name: "Financial Express", site: "financialexpress.com", feeds: [] },
-  { key: "deccan-herald", name: "Deccan Herald", site: "deccanherald.com", feeds: [] },
+  {
+    key: "deccan-herald", name: "Deccan Herald", site: "deccanherald.com",
+    feeds: [f(null, "https://www.deccanherald.com/stories.rss"), f(null, "https://www.deccanherald.com/news_sitemap.xml")],
+  },
   { key: "tribune", name: "The Tribune", site: "tribuneindia.com", feeds: [] },
-  { key: "new-indian-express", name: "The New Indian Express", site: "newindianexpress.com", feeds: [] },
+  {
+    key: "new-indian-express", name: "The New Indian Express", site: "newindianexpress.com",
+    feeds: [f(null, "https://www.newindianexpress.com/stories.rss"), f(null, "https://www.newindianexpress.com/news_sitemap.xml")],
+  },
   { key: "telegraph", name: "The Telegraph", site: "telegraphindia.com", feeds: [] },
   { key: "statesman", name: "The Statesman", site: "thestatesman.com", feeds: [] },
   {
