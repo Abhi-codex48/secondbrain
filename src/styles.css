@@ -714,14 +714,16 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .xt span { font-size: .76rem; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .xlead { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; text-decoration: none; color: inherit; min-width: 0; }
 .xlead b { font-size: .95rem; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.xlead .xsrc { flex-wrap: wrap; }
 .xlead p { font-size: .86rem; line-height: 1.5; color: var(--ink-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .xlead:hover b { color: var(--accent); }
 .xsrc { display: inline-flex; align-items: center; gap: 3px; font-size: .74rem; font-weight: 700; color: var(--ink-3); }
 .xbox ul { list-style: none; margin: 0; padding: 0 14px 6px; }
 .xbox li { border-top: 1px solid var(--line); }
-.xbox li a { display: block; padding: 9px 0; font-size: .88rem; font-weight: 650; line-height: 1.4; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.xbox li a:hover { color: var(--accent); }
-.xbox li .xsrc { display: inline; font-weight: 600; }
+.xbox li a { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; color: var(--ink); text-decoration: none; min-width: 0; }
+.xbox li .xtitle { font-size: .88rem; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.xbox li a:hover .xtitle { color: var(--accent); }
+.xbox li .xsrc { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .xmore { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 40px; border-top: 1px solid var(--line); font-size: .82rem; font-weight: 800; color: var(--x); margin-top: auto; }
 .xmore:hover { background: var(--bg-2); }
 /* ============ How it works ============ */

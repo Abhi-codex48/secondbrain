@@ -70,7 +70,10 @@ function XBox({ b, i }: { b: Box; i: number }) {
         <ul>
           {more.map((it) => (
             <li key={it.url + it.title}>
-              <a href={it.url} target="_blank" rel="noopener noreferrer">{it.title}<span className="xsrc"> · {it.source}</span></a>
+              <a href={it.url} target="_blank" rel="noopener noreferrer">
+                <span className="xtitle">{it.title}</span>
+                <span className="xsrc">{it.source}{it.date ? ` · ${relTime(it.date)}` : ""}</span>
+              </a>
             </li>
           ))}
         </ul>

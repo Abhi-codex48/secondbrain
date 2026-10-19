@@ -324,6 +324,52 @@ export async function loadNewsFile(force = false): Promise<NewsFile> {
   }
 }
 
+// ---------- reader tools: highlights, followed topics, reading days ----------
+export interface Highlight { id: string; text: string; news_id: string; title: string; url: string; source: string; created_at: string }
+export async function addHighlight(h: Omit<Highlight, "id" | "created_at">): Promise<Highlight> {
+  const full = { ...h, id: newId(), created_at: now() };
+  void setDoc(doc(col("highlights"), full.id), full).catch(() => {});
+  return full;
+}
+export async function listHighlights(): Promise<Highlight[]> {
+  const s = await getDocsFromCache(col("highlights")).catch(() => null) ?? await getDocs(col("highlights"));
+  return s.docs.map((d) => d.data() as Highlight).sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+export const deleteHighlight = (id: string) => deleteDoc(doc(col("highlights"), id));
+
+/** Words or names whose headlines you want to follow (e.g. "RBI", "Ukraine"). */
+export async function getFollowing(): Promise<string[]> {
+  const d = await getDoc(doc(col("prefs"), "follow")).catch(() => null);
+  return (d?.exists() ? (d.data().keywords as string[]) : []) ?? [];
+}
+export async function setFollowing(keywords: string[]) {
+  const clean = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))].slice(0, 20);
+  await setDoc(doc(col("prefs"), "follow"), { id: "follow", keywords: clean, updated_at: now() });
+  return clean;
+}
+export const followMatches = (title: string, k: string) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i").test(title);
+
+/** Days (in India time) on which you read news, wrote notes or finished tasks. */
+export async function readingDays(): Promise<Set<string>> {
+  const [st, all, todos] = await Promise.all([loadStates(), listNotes().catch(() => []), listTodos().catch(() => [])]);
+  const days = new Set<string>();
+  for (const s of st.values()) if (s.read_at) days.add(istDay(s.read_at));
+  for (const n of all) days.add(istDay(n.updated_at));
+  for (const t of todos) if (t.done_at) days.add(istDay(t.done_at));
+  return days;
+}
+
+/** Saved articles, with whether their full text is kept on this device for offline reading. */
+export async function readingList(): Promise<(NewsItem & { offline: boolean })[]> {
+  const [saved, arts] = await Promise.all([listNews({ status: "saved" }), getDocs(col("articles")).catch(() => null)]);
+  const withText = new Set(arts?.docs.filter((d) => (d.data().text ?? "").length > 200).map((d) => d.id) ?? []);
+  const ids = new Set(saved.map((n) => n.id));
+  // Saved links and older saved items that have left the news list.
+  const extra = (arts?.docs ?? []).filter((d) => !ids.has(d.id) && (d.data().text ?? "").length > 200 && (d.data().item?.source === "link"))
+    .map((d) => ({ ...toItem(d.data().item, undefined, d.data().text), status: "saved" as const }));
+  return [...saved, ...extra].map((n) => ({ ...n, offline: withText.has(n.id) }));
+}
+
 // ---------- news archive (one file per day, last 90 days) ----------
 const archive = new Map<string, Promise<NewsFile["items"]>>();
 function loadArchiveDay(day: string): Promise<NewsFile["items"]> {
@@ -459,7 +505,7 @@ export async function homeCounts() {
 }
 
 // ---------- storage, backup and clean-up ----------
-const TABLES = ["folders", "notes", "todos", "newsState", "articles"] as const;
+const TABLES = ["folders", "notes", "todos", "newsState", "articles", "highlights", "prefs"] as const;
 
 export async function exportAll(): Promise<Record<string, Record<string, unknown>[]>> {
   await syncNotes();
