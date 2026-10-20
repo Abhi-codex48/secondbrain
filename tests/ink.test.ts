@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eraseAt, itemsOf, lassoSelect, recognize, transform, wrapText, type Pt, type StrokeItem } from "../src/lib/ink";
+import { eraseAt, isScribble, itemsOf, scribbleTargets, lassoSelect, recognize, transform, wrapText, type Pt, type StrokeItem } from "../src/lib/ink";
 
 const line = (n = 30): Pt[] => Array.from({ length: n }, (_, i) => [100 + i * 10, 200, 0.5]);
 const stroke = (points: Pt[]): StrokeItem => ({ type: "stroke", id: "s", pen: "ballpoint", color: "#000", size: 4, points });
@@ -49,5 +49,28 @@ describe("drawing engine", () => {
 
   it("wraps text to the box width", () => {
     expect(wrapText("one two three four five six", 100, 20).length).toBeGreaterThan(1);
+  });
+});
+
+describe("scribble to erase", () => {
+  const zigzag = (n: number, w = 120, h = 30): Pt[] => Array.from({ length: n * 8 }, (_, i) => {
+    const t = i / 8;
+    const x = 100 + (Math.floor(t) % 2 === 0 ? (t % 1) * w : w - (t % 1) * w);
+    return [x, 200 + (i / (n * 8)) * h, 0.5] as Pt;
+  });
+  it("spots a back-and-forth scratch", () => {
+    expect(isScribble(zigzag(7))).toBe(true);
+  });
+  it("leaves ordinary writing alone", () => {
+    const line: Pt[] = Array.from({ length: 40 }, (_, i) => [100 + i * 5, 200 + Math.sin(i / 3) * 8, 0.5]);
+    expect(isScribble(line)).toBe(false);
+    const loop: Pt[] = Array.from({ length: 40 }, (_, i) => [200 + Math.cos(i / 6) * 50, 200 + Math.sin(i / 6) * 50, 0.5]);
+    expect(isScribble(loop)).toBe(false);
+  });
+  it("finds the strokes it covers, never a locked page picture", () => {
+    const word = { type: "stroke" as const, id: "w", pen: "ballpoint" as const, color: "#000", size: 3, points: [[110, 210, 0.5], [200, 215, 0.5]] as Pt[] };
+    const far = { ...word, id: "far", points: [[600, 600, 0.5], [650, 610, 0.5]] as Pt[] };
+    const pic = { type: "image" as const, id: "p", x: 0, y: 0, w: 1000, h: 800, src: "", locked: true };
+    expect(scribbleTargets([word, far, pic], zigzag(7), 8)).toEqual(["w"]);
   });
 });

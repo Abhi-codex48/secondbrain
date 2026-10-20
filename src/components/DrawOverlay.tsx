@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Pen, Highlighter, Eraser, Undo2, Hand, Save, Loader2 } from "lucide-react";
+import { X, Pen, Highlighter, Eraser, Undo2, Hand, Save, Loader2, WandSparkles } from "lucide-react";
 import { saveNote } from "../lib/api";
 import { W, hitItem, strokePath, uid, unionBox, type Item, type Pt, type StrokeItem, type Page } from "../lib/ink";
 import { go } from "../lib/router";
 import { errMsg, useConfirm, useToast } from "./ui";
 
-type Tool = "pen" | "highlighter" | "eraser";
+type Tool = "laser" | "pen" | "highlighter" | "eraser";
+const LASER = "#ff2d2d";
+// Laser marks stay this long after the finger lifts, then fade away (nothing is saved).
+const LASER_MS = 1000;
+const lastTool = (): Tool => { try { const t = localStorage.getItem("sb-pen-tool"); return t === "pen" || t === "highlighter" ? t : "laser"; } catch { return "laser"; } };
 const dark = () => document.documentElement.dataset.mode === "dark";
 // The first pen colour follows the theme so marks always show on the page.
 const colors = () => [dark() ? "#ffffff" : "#1f1f2e", "#e5383b", dark() ? "#60a5fa" : "#2563eb", dark() ? "#4ade80" : "#16a34a", "#f59e0b", dark() ? "#c084fc" : "#a855f7"];
@@ -49,7 +53,10 @@ async function capture(top: number, height: number): Promise<{ src: string; w: n
 export function DrawOverlay({ onClose, context }: { onClose: () => void; context: { title: string; href: string } }) {
   const [items, setItems] = useState<Item[]>([]);
   const [undo, setUndo] = useState<Item[][]>([]);
-  const [tool, setTool] = useState<Tool>("pen");
+  const [tool, setToolState] = useState<Tool>(lastTool);
+  const setTool = (t: Tool) => { setToolState(t); if (t !== "eraser") try { localStorage.setItem("sb-pen-tool", t); } catch { /* not remembered */ } };
+  // Laser strokes on their way out: shown for a moment after drawing, then gone.
+  const [trail, setTrail] = useState<{ id: string; d: string }[]>([]);
   const [COLORS] = useState(colors);
   const [color, setColor] = useState(COLORS[0]);
   const [hl, setHl] = useState(HL_COLORS[0]);
@@ -96,7 +103,9 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
     if (tool === "eraser") return eraseAt(e);
     live.current = tool === "highlighter"
       ? { type: "stroke", id: uid(), pen: "highlighter", color: hl, size: 6, points: [at(e)] }
-      : { type: "stroke", id: uid(), pen: "ballpoint", color, size: 3, points: [at(e)] };
+      : tool === "laser"
+        ? { type: "stroke", id: uid(), pen: "ballpoint", color: LASER, size: 4, points: [at(e)] }
+        : { type: "stroke", id: uid(), pen: "ballpoint", color, size: 3, points: [at(e)] };
     force((n) => n + 1);
   };
   const eraseAt = (e: React.PointerEvent) => {
@@ -126,7 +135,15 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
     if (touches.current.size === 0) panY.current = null;
     const s = live.current;
     live.current = null;
-    if (s && s.points.length > 1) commit([...items, s]);
+    if (s && tool === "laser") {
+      // Laser: keep it on screen for a second, let it fade, then drop it.
+      if (s.points.length > 1) {
+        const mark = { id: s.id, d: strokePath(s) };
+        setTrail((t) => [...t, mark]);
+        setTimeout(() => setTrail((t) => t.filter((m) => m.id !== mark.id)), LASER_MS + 600);
+      }
+      force((n) => n + 1);
+    } else if (s && s.points.length > 1) commit([...items, s]);
     else force((n) => n + 1);
   };
 
@@ -171,31 +188,36 @@ export function DrawOverlay({ onClose, context }: { onClose: () => void; context
     }
   };
 
-  const all = live.current ? [...items, live.current] : items;
   return createPortal(
     <>
       <div className="pen-layer" style={{ width: size.w, height: size.h }}>
         <svg width={size.w} height={size.h} style={{ pointerEvents: scroll || asking ? "none" : "auto", touchAction: "none" }}
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
-          {all.map((it) => it.type === "stroke" && (
+          {items.map((it) => it.type === "stroke" && (
             <path key={it.id} d={strokePath(it)} fill={it.color} opacity={it.pen === "highlighter" ? 0.42 : 1} style={it.pen === "highlighter" && !dark() ? { mixBlendMode: "multiply" } : undefined} />
           ))}
+          {trail.map((m) => <path key={m.id} d={m.d} fill={LASER} className="laser fade" style={{ animationDelay: `${LASER_MS}ms` }} />)}
+          {live.current && (tool === "laser"
+            ? <path d={strokePath(live.current)} fill={LASER} className="laser" />
+            : <path d={strokePath(live.current)} fill={live.current.color} opacity={live.current.pen === "highlighter" ? 0.42 : 1} style={live.current.pen === "highlighter" && !dark() ? { mixBlendMode: "multiply" } : undefined} />)}
         </svg>
       </div>
       <div className="pen-bar" role="toolbar" aria-label="Pen mode" style={asking ? { visibility: "hidden" } : undefined}>
         <button className="icon-btn" onClick={close} aria-label="Close pen mode" title="Close"><X size={20} /></button>
         <button className={`icon-btn ${scroll ? "on" : ""}`} onClick={() => setScroll((v) => !v)} aria-pressed={scroll} title={scroll ? "Scrolling: tap to draw" : "Tap to scroll the page"}><Hand size={20} /></button>
         <span className="sep" />
+        <button className={`icon-btn laser-btn ${tool === "laser" && !scroll ? "on" : ""}`} onClick={() => { setTool("laser"); setScroll(false); }} aria-label="Laser pen: marks fade away after a second" title="Laser pen: for explaining, fades away"><WandSparkles size={20} /></button>
         <button className={`icon-btn ${tool === "pen" && !scroll ? "on" : ""}`} onClick={() => { setTool("pen"); setScroll(false); }} aria-label="Pen"><Pen size={20} color={color} /></button>
         <button className={`icon-btn ${tool === "highlighter" && !scroll ? "on" : ""}`} onClick={() => { setTool("highlighter"); setScroll(false); }} aria-label="Highlighter"><Highlighter size={20} color={hl === "#ffe14d" ? "#d4a106" : hl} /></button>
         <button className={`icon-btn ${tool === "eraser" && !scroll ? "on" : ""}`} onClick={() => { setTool("eraser"); setScroll(false); }} aria-label="Eraser"><Eraser size={20} /></button>
         <span className="sep" />
-        <div className="pen-colors">
+        {tool !== "laser" && <div className="pen-colors">
           {(tool === "highlighter" ? HL_COLORS : COLORS).map((c) => (
             <button key={c} className={(tool === "highlighter" ? hl : color) === c ? "on" : ""} style={{ background: c }} aria-label={`Colour ${c}`}
               onClick={() => { if (tool === "highlighter") setHl(c); else { setColor(c); setTool("pen"); } setScroll(false); }} />
           ))}
-        </div>
+        </div>}
+        {tool === "laser" && <span className="tiny laser-note">Fades after 1 s</span>}
         <span className="sep" />
         <button className="icon-btn" onClick={() => { const u = undo[undo.length - 1]; if (u) { setItems(u); setUndo(undo.slice(0, -1)); } }} disabled={!undo.length} aria-label="Undo"><Undo2 size={20} /></button>
         <button className="btn primary sm" onClick={save} disabled={saving || !items.length}>{saving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}Save</button>

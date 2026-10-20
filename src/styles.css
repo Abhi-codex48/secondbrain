@@ -496,6 +496,7 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .studio-page svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
 .paper-lines { background-image: linear-gradient(#e4e8f2 1px, transparent 1px); background-size: 100% calc(var(--s) * 46px); background-position: 0 calc(var(--s) * 40px); }
 .paper-grid { background-image: linear-gradient(#e7eaf2 1px, transparent 1px), linear-gradient(90deg, #e7eaf2 1px, transparent 1px); background-size: calc(var(--s) * 40px) calc(var(--s) * 40px); }
+.paper-cornell { background-image: linear-gradient(90deg, transparent calc(var(--s) * 270px), #f2a8a8 calc(var(--s) * 270px), #f2a8a8 calc(var(--s) * 272px), transparent calc(var(--s) * 272px)), linear-gradient(#e4e8f2 1px, transparent 1px); background-size: 100% 100%, 100% calc(var(--s) * 46px); background-position: 0 0, 0 calc(var(--s) * 40px); }
 .paper-dots { background-image: radial-gradient(#c9cedb 1.2px, transparent 1.4px); background-size: calc(var(--s) * 36px) calc(var(--s) * 36px); }
 .studio-text { position: absolute; z-index: 2; border: 2px dashed #7c4dff; border-radius: 6px; background: rgba(255,255,255,.92); padding: 0 4px; outline: 0; resize: both; font-family: Manrope, system-ui, sans-serif; font-weight: 600; line-height: 1.3; overflow: hidden; }
 .studio-bottom { position: relative; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -1000,3 +1001,10 @@ html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bez
 .mk-bar i { position: absolute; top: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; transform: translateY(-50%); background: var(--surface); border: 3px solid var(--ink); }
 @media (max-width: 380px) { .mk-main { grid-template-columns: minmax(0, 1fr) 48px minmax(76px, auto); gap: 8px; padding: 10px 12px; } .mk-spark { width: 48px; } .mk-range { grid-template-columns: 1fr; } }
 .mk-mover .tiny { white-space: nowrap; }
+
+/* Laser pen: a glowing red line that fades away */
+.laser { filter: drop-shadow(0 0 2px rgba(255, 45, 45, .95)) drop-shadow(0 0 7px rgba(255, 45, 45, .55)); }
+.laser.fade { animation: laser-out .5s ease forwards; }
+@keyframes laser-out { to { opacity: 0; filter: drop-shadow(0 0 10px rgba(255, 45, 45, 0)); } }
+.laser-btn.on { color: #ff2d2d; background: color-mix(in srgb, #ff2d2d 14%, transparent); }
+.laser-note { white-space: nowrap; color: var(--ink-3); padding: 0 4px; }

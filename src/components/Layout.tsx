@@ -112,7 +112,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
             {dial && (
               <div className="dial" role="menu">
                 <button role="menuitem" className="dial-item" onClick={() => { setDial(false); setPen(true); }}>
-                  <span>Highlight / draw on screen</span><i className="pen"><PenLine size={19} /></i>
+                  <span>Laser, highlight or draw on screen</span><i className="pen"><PenLine size={19} /></i>
                 </button>
                 <button role="menuitem" className="dial-item" onClick={() => { setDial(false); go("note/new"); }}>
                   <span>New note</span><i><NotebookPen size={19} /></i>

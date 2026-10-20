@@ -15,7 +15,7 @@ export interface TextItem { type: "text"; id: string; x: number; y: number; w: n
 export interface ImageItem { type: "image"; id: string; x: number; y: number; w: number; h: number; src: string; locked?: boolean }
 export type Item = StrokeItem | ShapeItem | TextItem | ImageItem;
 
-export type Paper = "lines" | "grid" | "dots" | "plain";
+export type Paper = "lines" | "grid" | "dots" | "plain" | "cornell";
 export interface Page { id?: string; height: number; paper?: Paper; items?: Item[]; /** older format */ strokes?: { points: Pt[]; color: string; size: number; tool: "pen" | "highlighter" }[] }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -255,4 +255,38 @@ export function snapAngle(x1: number, y1: number, x2: number, y2: number): [numb
   if (Math.abs(a - snapped) > 0.08) return [x2, y2];
   const len = Math.hypot(x2 - x1, y2 - y1);
   return [x1 + len * Math.cos(snapped), y1 + len * Math.sin(snapped)];
+}
+
+/**
+ * A quick back-and-forth scratch (like crossing out on paper): many changes of
+ * direction packed into a small area. Used for "scribble to erase".
+ */
+export function isScribble(points: Pt[]): boolean {
+  if (points.length < 12) return false;
+  const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+  const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+  if (Math.max(w, h) < 15) return false;
+  let length = 0;
+  for (let i = 1; i < points.length; i++) length += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+  // Count reversals along the stroke's main direction.
+  const axis = w >= h ? 0 : 1;
+  let rev = 0, dir = 0;
+  for (let i = 3; i < points.length; i += 1) {
+    const d = points[i][axis] - points[i - 3][axis];
+    if (Math.abs(d) < 3) continue;
+    const sg = Math.sign(d);
+    if (dir && sg !== dir) rev++;
+    dir = sg;
+  }
+  return rev >= 5 && length > 3.2 * Math.max(w, h);
+}
+
+/** Items a scribble covers (locked page pictures are never scribbled away). */
+export function scribbleTargets(items: Item[], points: Pt[], r: number): string[] {
+  const ids = new Set<string>();
+  for (const it of items) {
+    if (it.type === "image" && it.locked) continue;
+    for (let i = 0; i < points.length; i += 2) if (hitItem(it, points[i][0], points[i][1], r)) { ids.add(it.id); break; }
+  }
+  return [...ids];
 }

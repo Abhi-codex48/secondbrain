@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Undo2, Redo2, Share2, PenLine, Type, Lasso, Plus, Trash2, Copy, ImagePlus, Shapes, Rows3, Grid3x3, Square, CircleDot, MoveVertical, PenTool, X, Minus, ArrowUpRight, Circle, Triangle, Table, RectangleHorizontal } from "lucide-react";
+import { ArrowLeft, Undo2, Redo2, Share2, PenLine, Type, Lasso, Plus, Trash2, Copy, ImagePlus, Shapes, Rows3, Grid3x3, Square, CircleDot, MoveVertical, PenTool, PanelLeft, Scissors, X, Minus, ArrowUpRight, Circle, Triangle, Table, RectangleHorizontal } from "lucide-react";
 import {
-  W, eraseAt, hitItem, itemsOf, lassoSelect, recognize, shapePath, snapAngle, strokePath, transform, uid, unionBox, wrapText,
-  type Item, type Page, type Paper, type PenKind, type ShapeItem, type ShapeKind, type StrokeItem, type TextItem,
+  W, eraseAt, hitItem, isScribble, itemsOf, lassoSelect, scribbleTargets, recognize, shapePath, snapAngle, strokePath, transform, uid, unionBox, wrapText,
+  type Item, type Page, type Paper, type PenKind, type Pt, type ShapeItem, type ShapeKind, type StrokeItem, type TextItem,
 } from "../lib/ink";
 import { imageToDataUrl } from "../lib/api";
 import { downloadBlob } from "../lib/backup";
@@ -193,6 +193,7 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
   const [eraserMode, setEraserMode] = useState<"partial" | "stroke">(() => load("sb-studio-eraser", { m: "partial" as "partial" | "stroke" }).m);
   const [shape, setShape] = useState<ShapeKind | null>(null);
   const [penOnly, setPenOnly] = useState(() => load("sb-studio-penonly", { v: false }).v);
+  const [scribble, setScribble] = useState(() => load("sb-studio-scribble", { v: true }).v);
   const [pop, setPop] = useState<null | "size" | "color" | "insert" | "shapes" | "eraser">(null);
   const [textSize, setTextSize] = useState(30);
   const [selected, setSelected] = useState<string[]>([]);
@@ -212,6 +213,7 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
   useEffect(() => store("sb-studio-styles", styles), [styles]);
   useEffect(() => store("sb-studio-eraser", { m: eraserMode }), [eraserMode]);
   useEffect(() => store("sb-studio-penonly", { v: penOnly }), [penOnly]);
+  useEffect(() => store("sb-studio-scribble", { v: scribble }), [scribble]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -270,9 +272,22 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
   const act = useRef<{
     id: number; kind: "draw" | "shape" | "erase" | "lasso" | "move" | "scale" | "scroll";
     start: [number, number]; last: [number, number]; stroke?: StrokeItem; shape?: ShapeItem;
-    hold?: ReturnType<typeof setTimeout>; recognized?: boolean; base?: Item[]; box?: ReturnType<typeof unionBox>; erased?: Item[];
+    hold?: ReturnType<typeof setTimeout>; recognized?: boolean; predicted?: Pt[]; base?: Item[]; box?: ReturnType<typeof unionBox>; erased?: Item[];
   } | null>(null);
   const touches = useRef(new Map<number, { x: number; y: number }>());
+  // One screen update per frame for the stroke being drawn, plus the points the
+  // device predicts will come next, so the ink keeps up with the pen.
+  const frame = useRef(0);
+  const showLive = () => {
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      const a = act.current;
+      if (a?.kind === "draw" && a.stroke && !a.recognized) setLive({ ...a.stroke, points: a.predicted?.length ? [...a.stroke.points, ...a.predicted] : [...a.stroke.points] });
+    });
+  };
+  // A quick tap with two fingers undoes, with three fingers redoes (like Notability).
+  const tap = useRef<{ t: number; n: number; moved: boolean; at: Map<number, { x: number; y: number }> } | null>(null);
   // Two-finger pinch zooms (1×–4×) and pans the page, like Notability.
   const [zoom, setZoom] = useState(1);
   const pinch = useRef<{ d0: number; z0: number; m0: [number, number]; s0: [number, number] } | null>(null);
@@ -296,6 +311,11 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
     if (e.pointerType === "pen" && !penOnly) setPenOnly(true); // a stylus was used: fingers stop drawing (palm rejection)
     if (e.pointerType === "touch") {
       touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.current.size >= 2) {
+        const tp = tap.current;
+        if (!tp || Date.now() - tp.t > 250) tap.current = { t: Date.now(), n: touches.current.size, moved: false, at: new Map(touches.current) };
+        else { tp.n = Math.max(tp.n, touches.current.size); tp.at.set(e.pointerId, { x: e.clientX, y: e.clientY }); }
+      } else tap.current = null;
       if (touches.current.size === 2) {
         if (act.current) {
           clearTimeout(act.current.hold);
@@ -395,6 +415,8 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
   const move = (e: React.PointerEvent) => {
     if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
       touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const t0 = tap.current?.at.get(e.pointerId);
+      if (tap.current && t0 && Math.hypot(e.clientX - t0.x, e.clientY - t0.y) > 12) tap.current.moved = true;
       const pc = pinch.current;
       if (pc && touches.current.size >= 2) {
         const { d, m } = pinchInfo();
@@ -435,8 +457,10 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
         a.stroke.points.push([q[0], q[1], pressure(ev)]);
         if (Math.hypot(q[0] - a.last[0], q[1] - a.last[1]) > 3) { a.last = q; armHold(); }
       }
+      const pred = typeof e.nativeEvent.getPredictedEvents === "function" ? e.nativeEvent.getPredictedEvents() : [];
+      a.predicted = pred.slice(0, 3).map((ev) => { const q = toPage(ev); return [q[0], q[1], pressure(ev)] as Pt; });
       growTo(p[1]);
-      setLive({ ...a.stroke, points: [...a.stroke.points] });
+      showLive();
     } else if (a.kind === "shape" && a.shape) {
       const sh = a.shape;
       if (sh.shape === "line" || sh.shape === "arrow") [sh.x2, sh.y2] = snapAngle(sh.x1, sh.y1, p[0], p[1]);
@@ -470,6 +494,15 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
 
   const up = (e: React.PointerEvent) => {
     touches.current.delete(e.pointerId);
+    const tp = tap.current;
+    if (tp && touches.current.size === 0) {
+      tap.current = null;
+      if (!tp.moved && Date.now() - tp.t < 300) {
+        if (tp.n === 2) undo(); else if (tp.n >= 3) redo();
+        pinch.current = null;
+        return;
+      }
+    }
     if (pinch.current) {
       if (touches.current.size < 2) pinch.current = null;
       return;
@@ -480,9 +513,15 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
     clearTimeout(a.hold);
     if (a.kind === "scroll") return;
     if (a.kind === "draw" && a.stroke) {
+      cancelAnimationFrame(frame.current);
+      frame.current = 0;
       setLive(null);
       if (a.recognized && a.shape) commit([...itemsRef.current, a.shape]);
-      else commit([...itemsRef.current, a.stroke]);
+      else if (scribble && a.stroke.pen !== "highlighter" && isScribble(a.stroke.points)) {
+        // Crossing something out erases it; a zigzag over empty paper stays a drawing.
+        const ids = scribbleTargets(itemsRef.current, a.stroke.points, Math.max(6, a.stroke.size * 2));
+        commit(ids.length ? itemsRef.current.filter((i) => !ids.includes(i.id)) : [...itemsRef.current, a.stroke]);
+      } else commit([...itemsRef.current, a.stroke]);
     } else if (a.kind === "shape" && a.shape) {
       setLive(null);
       const s = a.shape;
@@ -745,9 +784,12 @@ export function Studio({ page, title, mode = "page", onChange, onSave, onClose, 
                 <button className={`icon-btn sm ${paper === "grid" ? "on" : ""}`} onClick={() => setPaperAndEmit("grid")} aria-label="Grid"><Grid3x3 size={18} /></button>
                 <button className={`icon-btn sm ${paper === "dots" ? "on" : ""}`} onClick={() => setPaperAndEmit("dots")} aria-label="Dots"><CircleDot size={18} /></button>
                 <button className={`icon-btn sm ${paper === "plain" ? "on" : ""}`} onClick={() => setPaperAndEmit("plain")} aria-label="Plain"><Square size={18} /></button>
+                <button className={`icon-btn sm ${paper === "cornell" ? "on" : ""}`} onClick={() => setPaperAndEmit("cornell")} aria-label="Cornell notes (cue column)" title="Cornell notes: cue column on the left"><PanelLeft size={18} /></button>
               </div>
             )}
             <button onClick={() => setPenOnly((v) => !v)}><PenTool size={20} />Stylus only (palm rejection): {penOnly ? "On" : "Off"}</button>
+            <button onClick={() => setScribble((v) => !v)}><Scissors size={20} />Scribble to erase: {scribble ? "On" : "Off"}</button>
+            <p className="tiny" style={{ padding: "2px 10px 6px", margin: 0 }}>Tap with two fingers to undo, three to redo.</p>
             <button onClick={async () => { setPop(null); if (await confirm({ title: "Clear the page?", body: "You can undo this.", confirm: "Clear", danger: true })) commit(itemsRef.current.filter((i) => i.type === "image" && i.locked)); }}><X size={20} />Clear page</button>
           </div>
         )}

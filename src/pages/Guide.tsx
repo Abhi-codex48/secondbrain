@@ -93,6 +93,8 @@ export const GUIDE: Part[] = [
     steps: [
       "Pens: ballpoint, fountain, pencil, highlighter; eraser for part of a stroke or a whole stroke.",
       "Hold the pen still at the end of a line, box or circle to straighten it. Shapes, text and tables from the + menu.",
+      "Scribble back and forth over something to erase it. Tap with two fingers to undo, three to redo.",
+      "Paper: lined, grid, dots, plain, or Cornell notes (a cue column on the left for key words and questions).",
       "Lasso to move, resize, recolour or delete. Pinch with two fingers to zoom.",
       "Many pages per note: use the page bar to go back and forth or add a New page.",
     ],
@@ -101,7 +103,7 @@ export const GUIDE: Part[] = [
     icon: Highlighter, color: "var(--more-2)", title: "Pen mode",
     lead: "Write and highlight on any screen of the app.",
     steps: [
-      "Tap the + button at the bottom right → Highlight / draw on screen. Draw with one finger; scroll with two fingers (or the hand button).",
+      "Tap the + button at the bottom right → Laser, highlight or draw on screen. The laser pen (wand) draws a glowing red line that fades after a second, for explaining something to someone; nothing is saved. Pen and highlighter marks stay. Draw with one finger; scroll with two fingers (or the hand button).",
       "Nothing is saved until you press Save; then the part of the page with your marks becomes a note.",
     ],
   },
