@@ -1,0 +1,34 @@
+name: Hourly update starter
+
+# GitHub's own timer skips most scheduled runs under load (see pages.yml), so
+# this keeps a chain going: wait about an hour, start "Deploy website and news",
+# then start itself again. The schedule below restarts the chain if it ever
+# stops; only one waiting run is kept at a time.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "29 */3 * * *"
+
+permissions:
+  actions: write # to start the deploy workflow and the next waiting run
+
+concurrency:
+  group: heartbeat
+  cancel-in-progress: true
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Wait about an hour
+        run: sleep 3300
+      - name: Start the news update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"
+      - name: Start the next wait
+        if: ${{ !cancelled() }} # a run replaced by a newer one must not start another
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run heartbeat.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"

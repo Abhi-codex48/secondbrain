@@ -4,10 +4,26 @@ import { addBookmark } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { errMsg, useToast } from "./ui";
 
-interface Story { text: string; title: string; background: string; url: string; image: string | null }
-interface Event { category: string; topic: string; text: string; sources: { name: string; url: string }[]; day: string }
-interface Trend { title: string; text: string; url: string; image: string | null; views: number }
-interface Briefing { day: string; top: Story[]; events: Event[]; trending: Trend[]; onthisday: { year: number; text: string; url: string | null }[] }
+import { buildBriefing, type Briefing } from "../../shared/briefing";
+
+const CACHE = "sb-briefing";
+const STALE = 90 * 60_000;
+const age = (b: Briefing | null) => (b?.generatedAt ? Date.now() - Date.parse(b.generatedAt) : Infinity);
+const hasContent = (b: Briefing | null): b is Briefing => !!b && !!(b.top?.length || b.events?.length || b.trending?.length);
+const readCache = (): Briefing | null => { try { return JSON.parse(localStorage.getItem(CACHE) ?? "null"); } catch { return null; } };
+
+/** Wikipedia lets browsers read it directly, so a late hourly update never leaves the box stale. */
+async function liveBriefing(): Promise<Briefing | null> {
+  const get = async (url: string) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  };
+  const b = await buildBriefing(get).catch(() => null);
+  if (!hasContent(b)) return null;
+  try { localStorage.setItem(CACHE, JSON.stringify(b)); } catch { /* storage full or blocked */ }
+  return b;
+}
 
 // Wikipedia's category names, shortened, each with its own colour.
 const CATS: Record<string, [string, string]> = {
@@ -39,11 +55,23 @@ export function KnowledgeBox() {
   const toast = useToast();
 
   useEffect(() => {
-    fetch("./knowledge.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((j: Briefing | null) => {
-      if (!j || !j.top) return setB(null);
+    let live = false;
+    const show = (j: Briefing) => {
       setB(j);
       if (!j.top.length) setTab(j.events.length ? "events" : "trending");
-    }).catch(() => setB(null));
+    };
+    (async () => {
+      const file: Briefing | null = await fetch("./knowledge.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      const cached = readCache();
+      // Whichever is newest: the hourly file, or the copy built here earlier.
+      const best = [file, cached].filter(hasContent).sort((x, y) => age(x) - age(y))[0] ?? null;
+      if (best) show(best);
+      if (age(best) > STALE && !live) {
+        live = true;
+        const fresh = await liveBriefing();
+        if (fresh) show(fresh);
+      }
+    })();
   }, []);
   const cats = useMemo(() => [...new Set((b?.events ?? []).map((e) => e.category))], [b]);
   if (!b || !(b.top.length || b.events.length || b.trending.length)) return null;

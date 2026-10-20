@@ -59,11 +59,12 @@ export const GUIDE: Part[] = [
   },
   {
     icon: TrendingUp, color: "var(--ok)", title: "Markets",
-    lead: "Stock markets in India and the world, commodities, currencies and Bitcoin. Updated every hour.",
+    lead: "Indian and world indices, top shares, commodities, currencies, bonds and crypto. Updated every hour.",
     steps: [
-      "Each card shows the price and the day's change, green for up and red for down.",
-      "Why it moved: today's headlines from the newspapers that mention that market. Tap one to read it.",
-      "Prices are delayed (Yahoo Finance, Stooq). For reading, not investment advice.",
+      "The strip at the top shows Nifty, Sensex, gold in rupees, oil, the dollar and Bitcoin at a glance.",
+      "Tabs: India, Indian shares, World, Global shares, Commodities (metals, energy, farm) and Currencies.",
+      "Each row has a one-month trend line and the day's change, green for up and red for down. Tap a row for the day's range, the 52-week range and Why it moved: today's headlines that name it.",
+      "Gold and silver in rupees are the world price converted at today's dollar rate, before import duty and GST. Prices are delayed (Yahoo Finance, Stooq). For reading, not investment advice.",
     ],
   },
   {

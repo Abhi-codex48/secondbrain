@@ -32,7 +32,7 @@ function Pages() {
     case "read": page = <Reader key={id} id={id} />; break;
     case "notes":
     case "library": page = <Library route={route} />; break;
-    case "markets": page = <Markets />; break;
+    case "markets": page = <Markets route={route} />; break;
     case "note": page = <NoteEditor key={id} id={id ?? "new"} route={route} />; break;
     case "more": page = <More route={route} />; break;
     case "search": page = <Search route={route} />; break;

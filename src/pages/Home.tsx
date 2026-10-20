@@ -48,7 +48,7 @@ export function Home() {
         <a className="tile t-markets" href="#/markets">
           <span className="ic"><TrendingUp size={26} /></span>
           <div className="head"><h2>Markets</h2></div>
-          <p>World stock markets, commodities and currencies, with the news behind each move.</p>
+          <p>Indian and world markets, top shares, gold in rupees, oil, crops and currencies, with the news behind each move.</p>
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
         <a className="tile t-notes" href="#/notes">
