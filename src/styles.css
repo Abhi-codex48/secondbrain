@@ -1008,3 +1008,4 @@ html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bez
 @keyframes laser-out { to { opacity: 0; filter: drop-shadow(0 0 10px rgba(255, 45, 45, 0)); } }
 .laser-btn.on { color: #ff2d2d; background: color-mix(in srgb, #ff2d2d 14%, transparent); }
 .laser-note { white-space: nowrap; color: var(--ink-3); padding: 0 4px; }
+.mk-note { margin: 0; font-size: .82rem; line-height: 1.45; color: var(--ink-2); padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }

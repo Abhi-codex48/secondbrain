@@ -8,7 +8,7 @@ import { setTitle } from "../components/Layout";
 interface Why { id: string; title: string; source: string }
 interface Quote {
   key: string; name: string; sub?: string; price: number; change: number; changePct: number; currency: string; asOf: string; source: string; unit?: string;
-  spark?: number[]; monthPct?: number; dayHigh?: number; dayLow?: number; yearHigh?: number; yearLow?: number; why: Why[];
+  spark?: number[]; monthPct?: number; note?: string; dayHigh?: number; dayLow?: number; yearHigh?: number; yearLow?: number; why: Why[];
 }
 interface Group { key: string; title: string; items: Quote[] }
 interface Data { generatedAt: string; groups: Group[]; headlines: Why[] }
@@ -94,19 +94,22 @@ export function Markets({ route }: { route: Route }) {
               </ul>
             </section>
           )}
-          <p className="tiny">Prices are delayed (Yahoo Finance, Stooq) and refreshed every hour. Gold and silver in rupees are the world price converted at today's dollar rate, before import duty and GST. "Why it moved" lists today's headlines that name each item. For reading, not investment advice.</p>
+          <p className="tiny">Prices are delayed (Yahoo Finance, Stooq) and refreshed every hour. Gold and silver in India are the world price in rupees plus India's 15% import duty (from 13 May 2026), before 3% GST and making charges, so they can differ slightly from your city's rate. "Why it moved" lists today's headlines that name each item. For reading, not investment advice.</p>
         </>
       )}
     </div>
   );
 }
 
+// Commodity kinds; the India rates (rupees, with duty) get their own heading.
+const kind = (q: Quote) => (q.key.endsWith("inr") && q.unit?.startsWith("₹ per") ? "In India" : q.sub ?? "");
+
 function GroupView({ g }: { g: Group }) {
   const shares = g.key === "inshares" || g.key === "wshares";
   const sorted = [...g.items].sort((a, b) => b.changePct - a.changePct);
   // Commodities read best by kind: metals, energy, farm.
   const parts = g.key === "commodities"
-    ? [...new Set(g.items.map((q) => q.sub?.startsWith("In India") ? "In India" : q.sub ?? ""))].map((s) => ({ title: s, items: g.items.filter((q) => (q.sub?.startsWith("In India") ? "In India" : q.sub ?? "") === s) }))
+    ? [...new Set(g.items.map(kind))].map((s) => ({ title: s, items: g.items.filter((q) => kind(q) === s) }))
     : [{ title: "", items: g.items }];
   return (
     <section className="mk-sec">
@@ -119,7 +122,7 @@ function GroupView({ g }: { g: Group }) {
       {parts.map((p) => (
         <div key={p.title} className="mk-part">
           {p.title && <h3 className="mk-sub">{p.title}</h3>}
-          <div className="mk-list card">{p.items.map((q) => <Row key={q.key} q={q} hideSub={!!p.title && !q.sub?.startsWith("In India")} />)}</div>
+          <div className="mk-list card">{p.items.map((q) => <Row key={q.key} q={q} hideSub={!!p.title && kind(q) !== "In India"} />)}</div>
         </div>
       ))}
     </section>
@@ -165,6 +168,7 @@ function Row({ q, hideSub }: { q: Quote; hideSub: boolean }) {
               <span className="tiny">high {fmt(q.yearHigh!)}</span>
             </div>
           )}
+          {q.note && <p className="mk-note">{q.note}</p>}
           <span className="tiny">{q.source} · {relTime(q.asOf)}</span>
           {q.why.length > 0 ? (
             <ul className="mk-whylist">

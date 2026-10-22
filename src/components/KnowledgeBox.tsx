@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookmarkPlus, Check, ChevronDown, ExternalLink, Globe2 } from "lucide-react";
 import { addBookmark } from "../lib/api";
-import { fmtLong } from "../lib/date";
+import { fmtLong, relTime } from "../lib/date";
 import { errMsg, useToast } from "./ui";
 
 import { buildBriefing, type Briefing } from "../../shared/briefing";
@@ -48,7 +48,7 @@ type Tab = "top" | "events" | "trending";
  */
 export function KnowledgeBox() {
   const [b, setB] = useState<Briefing | null>(null);
-  const [tab, setTab] = useState<Tab>("top");
+  const [tab, setTab] = useState<Tab>("events");
   const [filter, setFilter] = useState("");
   const [more, setMore] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -58,7 +58,8 @@ export function KnowledgeBox() {
     let live = false;
     const show = (j: Briefing) => {
       setB(j);
-      if (!j.top.length) setTab(j.events.length ? "events" : "trending");
+      // Latest events change through the day, so they come first; the big stories stay up for days.
+      setTab(j.events.length ? "events" : j.top.length ? "top" : "trending");
     };
     (async () => {
       const file: Briefing | null = await fetch("./knowledge.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -93,9 +94,9 @@ export function KnowledgeBox() {
   );
 
 
-  const events = b.events.filter((e) => !filter || e.category === filter);
+  const events = b.events.filter((e) => !filter || e.category === filter).sort((x, y) => y.day.localeCompare(x.day)); // newest day first
   const LIMIT = 6;
-  const tabs: [Tab, string, number][] = [["top", "Top stories", b.top.length], ["events", "World events", b.events.length], ["trending", "Trending", b.trending.length]];
+  const tabs: [Tab, string, number][] = [["events", "Latest", b.events.length], ["top", "Big stories", b.top.length], ["trending", "Trending", b.trending.length]];
 
   return (
     <section className="kbox" aria-labelledby="kbox-h">
@@ -103,7 +104,7 @@ export function KnowledgeBox() {
         <span className="kbox-ic"><Globe2 size={20} /></span>
         <div>
           <h2 id="kbox-h">World briefing</h2>
-          <span className="tiny">{fmtLong(b.day ? new Date(`${b.day}T12:00:00+05:30`) : undefined)} · from Wikipedia's current-events pages, with the news outlets they cite</span>
+          <span className="tiny">{fmtLong(b.day ? new Date(`${b.day}T12:00:00+05:30`) : undefined)}{b.generatedAt ? ` · updated ${relTime(b.generatedAt)}` : ""} · from Wikipedia's current-events pages, with the news outlets they cite</span>
         </div>
       </header>
 
@@ -116,6 +117,8 @@ export function KnowledgeBox() {
       </div>
 
       {tab === "top" && (
+        <>
+        <p className="tiny" style={{ margin: "0 0 4px" }}>The week's biggest world stories. Each stays here for several days, so check Latest for what's new today.</p>
         <ul className="klist">
           {b.top.slice(0, more ? 99 : 4).map((s) => (
             <li key={s.text}>
@@ -129,6 +132,7 @@ export function KnowledgeBox() {
             </li>
           ))}
         </ul>
+        </>
       )}
 
       {tab === "events" && (

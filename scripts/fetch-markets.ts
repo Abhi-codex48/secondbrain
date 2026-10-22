@@ -13,7 +13,7 @@ interface Asset { key: string; name: string; yahoo: string; stooq?: string; unit
 export interface Quote {
   key: string; name: string; sub?: string; price: number; change: number; changePct: number; currency: string; asOf: string; source: string; unit?: string;
   /** Daily closes for about the last month, oldest first: the small trend line. */
-  spark?: number[]; monthPct?: number; dayHigh?: number; dayLow?: number; yearHigh?: number; yearLow?: number;
+  spark?: number[]; monthPct?: number; note?: string; dayHigh?: number; dayLow?: number; yearHigh?: number; yearLow?: number;
 }
 
 // "why it moved" matches headlines naming the asset; by default its name.
@@ -197,22 +197,30 @@ async function main() {
     })))).filter((q): q is NonNullable<typeof q> => !!q),
   })));
 
-  // Gold and silver in rupees: the world price converted at today's dollar rate. Shops add
-  // import duty and GST, so local prices are higher; labelled as an estimate.
+  // Gold and silver in India: the world price in rupees plus India's import duty, which is how
+  // Indian bullion rates are set. Duty is 15% (10% basic customs duty + 5% AIDC) on gold and
+  // silver from 13 May 2026 (CBIC customs notifications 15-18/2026); before that it was 6%.
+  // 3% GST is added when you buy, and jewellers add making charges on top.
+  const DUTY = 0.15, GST = 0.03;
   const all = groups.flatMap((g) => g.items);
   const find = (k: string) => all.find((q) => q.key === k);
   const usd = find("usdinr"), gold = find("gold"), silver = find("silver");
   const OZ = 31.1035; // grams in a troy ounce
   const inRupees = (q: typeof gold, key: string, name: string, grams: number, unit: string) => {
     if (!q || !usd) return null;
-    const price = (q.price / OZ) * grams * usd.price;
-    const before = ((q.price - q.change) / OZ) * grams * (usd.price - usd.change);
+    const k = (grams / OZ) * (1 + DUTY);
+    const price = q.price * k * usd.price;
+    const before = (q.price - q.change) * k * (usd.price - usd.change);
     const n = Math.min(q.spark?.length ?? 0, usd.spark?.length ?? 0);
-    const spark = n > 1 ? q.spark!.slice(-n).map((p, i) => Number(((p / OZ) * grams * usd.spark!.slice(-n)[i]).toPrecision(6))) : undefined;
-    return { ...q, key, name, sub: "In India, before duty & GST (estimate)", unit, price, change: price - before, changePct: ((price - before) / before) * 100, spark, monthPct: spark ? ((price - spark[0]) / spark[0]) * 100 : undefined, dayHigh: undefined, dayLow: undefined, yearHigh: undefined, yearLow: undefined };
+    const spark = n > 1 ? q.spark!.slice(-n).map((p, i) => Number((p * k * usd.spark!.slice(-n)[i]).toPrecision(6))) : undefined;
+    return {
+      ...q, key, name, sub: "India rate · with 15% import duty", unit, price, change: price - before, changePct: ((price - before) / before) * 100,
+      spark, monthPct: spark ? ((price - spark[0]) / spark[0]) * 100 : undefined, dayHigh: undefined, dayLow: undefined, yearHigh: undefined, yearLow: undefined,
+      note: `With 3% GST: ₹${Math.round(price * (1 + GST)).toLocaleString("en-IN")}. Jewellers add making charges. Estimate from the world price; city rates differ slightly.`,
+    };
   };
   const com = groups.find((g) => g.key === "commodities");
-  if (com) com.items.unshift(...[inRupees(gold, "goldinr", "Gold in rupees", 10, "₹ per 10 g"), inRupees(silver, "silverinr", "Silver in rupees", 1000, "₹ per kg")].filter((q): q is NonNullable<typeof q> => !!q));
+  if (com) com.items.unshift(...[inRupees(gold, "goldinr", "Gold in India (24K)", 10, "₹ per 10 g"), inRupees(silver, "silverinr", "Silver in India", 1000, "₹ per kg")].filter((q): q is NonNullable<typeof q> => !!q));
 
   const total = groups.reduce((s, g) => s + g.items.length, 0);
   if (!total && previousUrl) {
@@ -225,6 +233,10 @@ async function main() {
   const headlines = business.filter((n) => /\b(markets?|stocks?|shares?|Sensex|Nifty|Wall Street|crude|gold|rupee|bond|yields?|inflation|Fed|RBI|rate)\b/i.test(n.title)).slice(0, 12).map((n) => ({ id: n.id, title: n.title, source: n.sourceName }));
   writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), groups, headlines }));
   console.log(`markets.json: ${total} prices, ${headlines.length} market headlines`);
+  for (const k of ["gold", "usdinr", "goldinr", "silverinr"]) {
+    const q = groups.flatMap((g) => g.items).find((x) => x.key === k);
+    if (q) console.log(`  ${q.name}: ${Math.round(q.price * 100) / 100} ${q.unit ?? ""}`);
+  }
   for (const r of report) console.log(r);
 }
 
