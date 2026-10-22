@@ -127,7 +127,7 @@ export function KnowledgeBox() {
         <>
         {fresh.length > 0 && (
           <>
-            <p className="ksub">Right now · most covered by the papers</p>
+            <p className="ksec">Right now · most covered by the papers</p>
             <ul className="klist">
               {fresh.slice(0, more ? 99 : 4).map((t) => (
                 <li key={t.title} className="kfresh">
@@ -149,7 +149,7 @@ export function KnowledgeBox() {
             </ul>
           </>
         )}
-        {b.top.length > 0 && <p className="ksub">This week's big world stories · Wikipedia</p>}
+        {b.top.length > 0 && <p className="ksec">This week's big world stories · Wikipedia</p>}
         <ul className="klist">
           {b.top.slice(0, more ? 99 : fresh.length ? 2 : 4).map((s) => (
             <li key={s.text}>

@@ -1016,7 +1016,7 @@ html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bez
 .mk-note { margin: 0; font-size: .82rem; line-height: 1.45; color: var(--ink-2); padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
 
 /* World briefing: top stories right now */
-.ksub { white-space: normal; overflow-wrap: anywhere; margin: 0; padding: 10px 16px 6px; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.ksec { white-space: normal; overflow-wrap: anywhere; margin: 0; padding: 12px 16px 4px; display: block; line-height: 1.4; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 .kfresh .khead { color: var(--ink); text-decoration: none; display: block; }
 .kfresh .khead:hover { color: var(--accent); }
 .kcount { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 6px 0; border-radius: 12px; background: linear-gradient(140deg, var(--news-1), var(--news-2)); color: #fff; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
