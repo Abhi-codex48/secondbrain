@@ -1,7 +1,8 @@
 // Writes countries.json for the World in numbers page: about 25 World
 // Development Indicators for every country, 2000 to the latest year, from the
-// World Bank's open data API (no key needed). The World Bank updates these once
-// or twice a year, so the previous file is reused when it is less than a week old.
+// World Bank's open data API (no key needed). Checked once a day: the previous
+// file is reused when it is less than a day old, so new releases and revisions
+// appear within a day.
 //   node --experimental-strip-types scripts/fetch-countries.ts <out> [previousUrl]
 import { writeFileSync } from "node:fs";
 import { INDICATORS, type CountriesFile } from "../shared/indicators.ts";
@@ -36,9 +37,9 @@ async function main() {
   if (previousUrl) {
     try { previous = (await get(previousUrl)) as CountriesFile; } catch { /* first run */ }
   }
-  if (previous?.generatedAt && Date.now() - Date.parse(previous.generatedAt) < 7 * 86400_000 && !process.env.FORCE) {
+  if (previous?.generatedAt && Date.now() - Date.parse(previous.generatedAt) < 22 * 3600_000 && !process.env.FORCE) {
     writeFileSync(out, JSON.stringify(previous));
-    console.log(`countries.json: kept (updated ${previous.generatedAt.slice(0, 10)}; refreshed weekly)`);
+    console.log(`countries.json: kept (checked ${previous.generatedAt.slice(0, 16)}; refreshed daily)`);
     return;
   }
 

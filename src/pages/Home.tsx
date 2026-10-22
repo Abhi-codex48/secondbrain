@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Library as LibraryIcon, ListTodo, Newspaper, PenLine, Plus, CircleHelp, TrendingUp } from "lucide-react";
+import { ArrowRight, Globe2, Library as LibraryIcon, ListTodo, Newspaper, PenLine, Plus, CircleHelp, TrendingUp } from "lucide-react";
 import { homeCounts } from "../lib/api";
 import { fmtLong } from "../lib/date";
 import { setTitle } from "../components/Layout";
@@ -49,6 +49,12 @@ export function Home() {
           <span className="ic"><TrendingUp size={26} /></span>
           <div className="head"><h2>Markets</h2></div>
           <p>Indian and world markets, top shares, gold in rupees, oil, crops and currencies, with the news behind each move.</p>
+          <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
+        </a>
+        <a className="tile t-world" href="#/world">
+          <span className="ic"><Globe2 size={26} /></span>
+          <div className="head"><h2>World in numbers</h2></div>
+          <p>GDP, life expectancy, sex ratio, mortality and more for every country, on a world map and side by side.</p>
           <span className="go" aria-hidden="true"><ArrowRight size={19} /></span>
         </a>
         <a className="tile t-notes" href="#/notes">

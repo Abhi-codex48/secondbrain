@@ -42,7 +42,7 @@ jobs:
         run: node --experimental-strip-types scripts/fetch-reads.ts dist/reads.json dist/news.json dist/knowledge.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/reads.json"
       - name: Build the Markets page
         run: node --experimental-strip-types scripts/fetch-markets.ts dist/markets.json dist/news.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/markets.json"
-      - name: Build World in numbers (World Bank data, refreshed weekly)
+      - name: Build World in numbers (World Bank data, checked daily)
         continue-on-error: true
         run: node --experimental-strip-types scripts/fetch-countries.ts dist/countries.json "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/countries.json"
       - name: Update the news archive

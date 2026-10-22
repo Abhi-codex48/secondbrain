@@ -812,6 +812,7 @@ mark.hit { background: var(--hl-yellow); color: inherit; border-radius: 3px; pad
 .rrow > a { flex: 1; min-width: 0; }
 /* ============ Markets ============ */
 .t-markets { --c1: #18a058; --c2: #0f8b8d; }
+.t-world { --c1: var(--more-2); --c2: var(--notes-1); }
 .mk-sec { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .mk-sec h2 { font-size: 1.1rem; }
 .mk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
@@ -1026,3 +1027,60 @@ html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bez
 .kpapers li { font-size: .84rem; line-height: 1.4; border-top: 1px solid var(--line); padding-top: 6px; overflow-wrap: anywhere; }
 .kpapers a { color: var(--ink); text-decoration: none; font-weight: 650; }
 .kpapers a:hover { color: var(--accent); }
+
+/* World in numbers */
+.world h2 { font-size: 1.1rem; }
+.wpick { position: relative; display: flex; flex-direction: column; gap: 8px; }
+.wchips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.wchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 10px; border-radius: 999px; font-weight: 800; font-size: .86rem; background: color-mix(in srgb, var(--w) 13%, var(--surface)); border: 1.5px solid color-mix(in srgb, var(--w) 45%, transparent); max-width: 100%; }
+.wchip > i { width: 10px; height: 10px; border-radius: 50%; background: var(--w); flex: none; }
+.wchip button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--ink-2); }
+.wchip button:hover { background: color-mix(in srgb, var(--w) 20%, transparent); }
+.wsearch { width: 100%; }
+.wlist { position: absolute; z-index: 30; top: 100%; left: 0; right: 0; margin: 4px 0 0; padding: 4px; list-style: none; max-height: 320px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-lg); }
+.wlist button { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 12px; border-radius: 10px; text-align: left; color: var(--ink); }
+.wlist button:hover { background: var(--surface-2); }
+.wmeasure { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.wcats { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 4px; border-radius: 14px; background: var(--surface-2); }
+.wcats::-webkit-scrollbar { display: none; }
+.wcats button { flex: none; padding: 8px 12px; border-radius: 10px; font-size: .84rem; font-weight: 800; color: var(--ink-2); white-space: nowrap; }
+.wcats button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.wmap { display: flex; flex-direction: column; gap: 10px; padding: 14px; min-width: 0; }
+.wsvg { width: 100%; height: auto; display: block; border-radius: 12px; background: color-mix(in srgb, var(--more-2) 7%, var(--surface)); touch-action: manipulation; }
+.wland { stroke: var(--surface); stroke-width: .5; cursor: pointer; transition: fill .3s; }
+.wland:hover, .wland.focus { stroke: var(--ink); stroke-width: 1.2; }
+.wlegend { display: grid; grid-template-columns: auto minmax(40px, 1fr) auto; gap: 8px; align-items: center; }
+.wlegend i { height: 8px; border-radius: 99px; }
+.wfocus { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); flex-wrap: wrap; animation: dial-in .2s var(--ease); }
+.wfocus .grow { display: flex; flex-direction: column; gap: 2px; min-width: 150px; flex: 1; }
+.wtrend { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.wchart { width: 100%; height: auto; display: block; }
+.wgrid { stroke: var(--line); stroke-width: 1; }
+.waxis { fill: var(--ink-3); font-size: 11.5px; font-weight: 600; font-family: var(--f-body); }
+.wworld { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 5; }
+.wkey { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .82rem; font-weight: 700; color: var(--ink-2); }
+.wkey span { display: inline-flex; align-items: center; gap: 6px; }
+.wkey i { width: 14px; height: 4px; border-radius: 2px; }
+.wkey i.dash { background: repeating-linear-gradient(90deg, var(--ink-3) 0 4px, transparent 4px 7px); }
+.wfacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.wfact { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; font-size: .86rem; line-height: 1.4; font-weight: 650; background: color-mix(in srgb, var(--w) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--w) 30%, var(--line)); min-width: 0; overflow-wrap: anywhere; }
+.wfact .lucide { color: var(--w); flex: none; margin-top: 1px; }
+.wcompare { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.wcat { padding: 6px 0; }
+.wcat h3 { margin: 8px 14px 4px; font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.wrow { width: 100%; display: grid; grid-template-columns: minmax(96px, 30%) minmax(0, 1fr); gap: 10px; padding: 10px 14px; text-align: left; color: inherit; border-top: 1px solid var(--line); }
+.wrow:hover, .wrow.on { background: var(--surface-2); }
+.wrow.on { box-shadow: inset 3px 0 0 var(--accent); }
+.wlabel { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wlabel b { font-size: .88rem; overflow-wrap: anywhere; }
+.wbars { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wbar { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; min-width: 0; }
+.wbar > i { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--w); max-width: 100%; transition: width .5s var(--ease); }
+.wval { font-weight: 800; font-size: .86rem; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px; overflow-wrap: anywhere; }
+.wval .lucide { color: var(--ok); }
+.wrank { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.world-src { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.world-src a { color: var(--accent); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; }
+@media (max-width: 420px) { .wrow { grid-template-columns: 1fr; gap: 6px; } }
+/* The floating + steps aside on this page's map card, which has its own buttons */
+.world .wfocus { padding-right: 64px; }

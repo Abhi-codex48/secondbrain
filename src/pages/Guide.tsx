@@ -68,6 +68,16 @@ export const GUIDE: Part[] = [
     ],
   },
   {
+    icon: Globe2, color: "var(--more-2)", title: "World in numbers",
+    lead: "Official figures for every country, from the World Bank. Checked for new figures every day.",
+    steps: [
+      "Type a country or pick from the list; compare up to four side by side.",
+      "Choose a figure (economy, people, health, learning, environment) to colour the world map; tap a country for its value and world rank, or to add it.",
+      "The trend shows 20+ years for your countries and the world average. Side by side lists every figure, with the year it was reported and a tick for the best.",
+      "Save a comparison to your Library or copy its link.",
+    ],
+  },
+  {
     icon: LibraryIcon, color: "var(--notes-1)", title: "Library",
     lead: "Everything you keep, in one place and each thing only once.",
     steps: [

@@ -16,6 +16,7 @@ import { Search } from "./pages/Search";
 const Reader = lazy(() => import("./pages/Reader").then((m) => ({ default: m.Reader })));
 const NoteEditor = lazy(() => import("./pages/NoteEditor").then((m) => ({ default: m.NoteEditor })));
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const World = lazy(() => import("./pages/World").then((m) => ({ default: m.World })));
 const Markets = lazy(() => import("./pages/Markets").then((m) => ({ default: m.Markets })));
 const Guide = lazy(() => import("./pages/Guide").then((m) => ({ default: m.Guide })));
 const Draw = lazy(() => import("./pages/Draw").then((m) => ({ default: m.Draw })));
@@ -33,6 +34,7 @@ function Pages() {
     case "notes":
     case "library": page = <Library route={route} />; break;
     case "markets": page = <Markets route={route} />; break;
+    case "world": page = <World route={route} />; break;
     case "note": page = <NoteEditor key={id} id={id ?? "new"} route={route} />; break;
     case "more": page = <More route={route} />; break;
     case "search": page = <Search route={route} />; break;
