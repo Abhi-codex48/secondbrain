@@ -163,6 +163,23 @@ function revealTheme(e: React.MouseEvent, palette: PaletteId, mode: Mode) {
 function ThemeButton() {
   const [{ mode, palette }, setTheme] = useState(currentTheme);
   const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // Close on a tap anywhere outside, on Escape, or when the page scrolls. (A full-screen
+  // layer can't do this here: the blurred top bar confines fixed layers to itself.)
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const scrolled = () => setOpen(false);
+    document.addEventListener("pointerdown", outside, true);
+    document.addEventListener("keydown", key);
+    window.addEventListener("scroll", scrolled, { passive: true });
+    return () => {
+      document.removeEventListener("pointerdown", outside, true);
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("scroll", scrolled);
+    };
+  }, [open]);
   useEffect(() => {
     const upd = () => setTheme(currentTheme());
     window.addEventListener("sb-theme", upd);
@@ -171,13 +188,12 @@ function ThemeButton() {
   const i = Math.max(0, MODES.findIndex((x) => x.m === mode));
   const { Icon, label } = MODES[i];
   return (
-    <div className="theme-pick">
+    <div className="theme-pick" ref={box}>
       <button className={`icon-btn${open ? " on" : ""}`} onClick={() => setOpen((o) => !o)} aria-label={`Theme: ${label}`} aria-expanded={open} title="Theme">
         <Icon key={mode} size={20} className="theme-ic" />
       </button>
       {open && (
         <>
-          <div className="pop-scrim" onClick={() => setOpen(false)} />
           <div className="theme-panel" role="dialog" aria-label="Theme">
             <div className="tp-head"><b>Theme</b><span>{PALETTES.find((p) => p.id === palette)?.name} · {label}</span></div>
             <div className="mode-seg" role="radiogroup" aria-label="Mode" style={{ ["--i" as string]: i }}>
