@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookmarkPlus, Check, ChevronDown, ExternalLink, Globe2 } from "lucide-react";
-import { addBookmark } from "../lib/api";
-import { fmtLong, relTime } from "../lib/date";
+import { addBookmark, loadNewsFile, onNewsUpdate } from "../lib/api";
+import { fmtLong, fmtTime, relTime } from "../lib/date";
+import { topStories, type TopStory } from "../../shared/topstories";
 import { errMsg, useToast } from "./ui";
 
 import { buildBriefing, type Briefing } from "../../shared/briefing";
@@ -48,7 +49,15 @@ type Tab = "top" | "events" | "trending";
  */
 export function KnowledgeBox() {
   const [b, setB] = useState<Briefing | null>(null);
-  const [tab, setTab] = useState<Tab>("events");
+  const [tab, setTab] = useState<Tab>("top");
+  // Top stories right now: what most of the newspapers are reporting (from the hourly news file).
+  const [fresh, setFresh] = useState<TopStory[]>([]);
+  const [openStory, setOpenStory] = useState<string | null>(null);
+  useEffect(() => {
+    const run = () => loadNewsFile().then((f) => setFresh(topStories(f.items))).catch(() => {});
+    run();
+    return onNewsUpdate(run);
+  }, []);
   const [filter, setFilter] = useState("");
   const [more, setMore] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -58,8 +67,6 @@ export function KnowledgeBox() {
     let live = false;
     const show = (j: Briefing) => {
       setB(j);
-      // Latest events change through the day, so they come first; the big stories stay up for days.
-      setTab(j.events.length ? "events" : j.top.length ? "top" : "trending");
     };
     (async () => {
       const file: Briefing | null = await fetch("./knowledge.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -75,7 +82,7 @@ export function KnowledgeBox() {
     })();
   }, []);
   const cats = useMemo(() => [...new Set((b?.events ?? []).map((e) => e.category))], [b]);
-  if (!b || !(b.top.length || b.events.length || b.trending.length)) return null;
+  if (!b || !(fresh.length || b.top.length || b.events.length || b.trending.length)) return null;
 
   // Saved items go to Library → Bookmarks (your notes stay for your own writing).
   const save = async (key: string, bm: { title: string; url: string; text: string; source: string; kind: string }) => {
@@ -96,7 +103,7 @@ export function KnowledgeBox() {
 
   const events = b.events.filter((e) => !filter || e.category === filter).sort((x, y) => y.day.localeCompare(x.day)); // newest day first
   const LIMIT = 6;
-  const tabs: [Tab, string, number][] = [["events", "Latest", b.events.length], ["top", "Big stories", b.top.length], ["trending", "Trending", b.trending.length]];
+  const tabs: [Tab, string, number][] = [["top", "Top stories", fresh.length + b.top.length], ["events", "World events", b.events.length], ["trending", "Trending", b.trending.length]];
 
   return (
     <section className="kbox" aria-labelledby="kbox-h">
@@ -118,9 +125,33 @@ export function KnowledgeBox() {
 
       {tab === "top" && (
         <>
-        <p className="tiny" style={{ margin: "0 0 4px" }}>The week's biggest world stories. Each stays here for several days, so check Latest for what's new today.</p>
+        {fresh.length > 0 && (
+          <>
+            <p className="ksub">Right now · most covered by the papers</p>
+            <ul className="klist">
+              {fresh.slice(0, more ? 99 : 4).map((t) => (
+                <li key={t.title} className="kfresh">
+                  <span className="kcount" title={`${t.papers.length} newspapers`}><b>{t.papers.length}</b>papers</span>
+                  <div className="kmain">
+                    <a className="khead" href={`#/read/${t.items[0].id}`}>{t.title}</a>
+                    <span className="tiny">{t.section} · latest {fmtTime(t.latest)} · {t.papers.slice(0, 3).join(", ")}{t.papers.length > 3 ? ` +${t.papers.length - 3}` : ""}</span>
+                    <button className="ksrc" onClick={() => setOpenStory(openStory === t.title ? null : t.title)} aria-expanded={openStory === t.title}>
+                      How each paper reports it <ChevronDown size={13} style={{ transform: openStory === t.title ? "rotate(180deg)" : undefined }} />
+                    </button>
+                    {openStory === t.title && (
+                      <ul className="kpapers">
+                        {t.items.map((i) => <li key={i.id}><a href={`#/read/${i.id}`}>{i.title}</a><span className="tiny"> · {i.sourceName}</span></li>)}
+                      </ul>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {b.top.length > 0 && <p className="ksub">This week's big world stories · Wikipedia</p>}
         <ul className="klist">
-          {b.top.slice(0, more ? 99 : 4).map((s) => (
+          {b.top.slice(0, more ? 99 : fresh.length ? 2 : 4).map((s) => (
             <li key={s.text}>
               {s.image && <img src={s.image} alt="" loading="lazy" />}
               <div className="kmain">
@@ -178,7 +209,7 @@ export function KnowledgeBox() {
         </ul>
       )}
 
-      {((tab === "top" && b.top.length > 4) || (tab === "events" && events.length > LIMIT) || (tab === "trending" && b.trending.length > 5)) && (
+      {((tab === "top" && (fresh.length > 4 || b.top.length > (fresh.length ? 2 : 4))) || (tab === "events" && events.length > LIMIT) || (tab === "trending" && b.trending.length > 5)) && (
         <button className="nmore" onClick={() => setMore((v) => !v)} aria-expanded={more}>
           {more ? "Show less" : "Show more"} <ChevronDown size={16} style={{ transform: more ? "rotate(180deg)" : undefined }} />
         </button>

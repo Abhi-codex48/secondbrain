@@ -1009,3 +1009,15 @@ html.theme-vt::view-transition-new(root) { animation: theme-reveal .6s cubic-bez
 .laser-btn.on { color: #ff2d2d; background: color-mix(in srgb, #ff2d2d 14%, transparent); }
 .laser-note { white-space: nowrap; color: var(--ink-3); padding: 0 4px; }
 .mk-note { margin: 0; font-size: .82rem; line-height: 1.45; color: var(--ink-2); padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
+
+/* World briefing: top stories right now */
+.ksub { white-space: normal; overflow-wrap: anywhere; margin: 0; padding: 10px 16px 6px; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.kfresh .khead { color: var(--ink); text-decoration: none; display: block; }
+.kfresh .khead:hover { color: var(--accent); }
+.kcount { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 6px 0; border-radius: 12px; background: linear-gradient(140deg, var(--news-1), var(--news-2)); color: #fff; font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.kcount b { font-family: var(--f-display); font-size: 1.3rem; line-height: 1.1; letter-spacing: 0; }
+.kfresh .ksrc { background: none; padding: 0; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; }
+.kpapers { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.kpapers li { font-size: .84rem; line-height: 1.4; border-top: 1px solid var(--line); padding-top: 6px; overflow-wrap: anywhere; }
+.kpapers a { color: var(--ink); text-decoration: none; font-weight: 650; }
+.kpapers a:hover { color: var(--accent); }
